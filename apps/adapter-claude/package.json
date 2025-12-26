@@ -13,7 +13,10 @@
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
-  "dependencies": {},
+  "dependencies": {
+    "node-pty": "^1.0.0",
+    "dotenv": "^16.4.1"
+  },
   "devDependencies": {
     "@types/node": "^20.11.16",
     "tsx": "^4.7.0",
