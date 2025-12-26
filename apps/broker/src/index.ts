@@ -26,9 +26,37 @@ app.get("/health", getHealth);
 app.post("/v1/requests", postRequests);
 app.post("/v1/decisions", postDecisions);
 
+// Error handling middleware (must come after all routes)
+app.use(
+  (
+    err: Error,
+    _req: express.Request,
+    res: express.Response,
+    _next: express.NextFunction
+  ) => {
+    console.error("[Broker] Unhandled error:", err.message);
+    console.error(err.stack);
+
+    if (res.headersSent) {
+      return;
+    }
+
+    res.status(500).json({ error: "Internal server error" });
+  }
+);
+
 // Start server
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`[Broker] Server running on http://localhost:${PORT}`);
   console.log(`[Broker] Health check: http://localhost:${PORT}/health`);
   console.log(`[Broker] Version: 0.0.1`);
+});
+
+server.on("error", (err: NodeJS.ErrnoException) => {
+  if (err.code === "EADDRINUSE") {
+    console.error(`[Broker] Port ${PORT} is already in use.`);
+  } else {
+    console.error("[Broker] Server failed to start:", err.message);
+  }
+  process.exit(1);
 });

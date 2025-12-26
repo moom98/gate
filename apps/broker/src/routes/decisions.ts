@@ -14,6 +14,16 @@ export function postDecisions(
 ) {
   const { id, decision } = req.body;
 
+  // Validate required fields
+  if (
+    typeof id !== "string" ||
+    id.trim().length === 0 ||
+    (decision !== "allow" && decision !== "deny")
+  ) {
+    console.warn("[Broker] Invalid decision payload");
+    return res.status(400).json({ success: false });
+  }
+
   console.log("[Broker] Received decision:", { id, decision });
 
   // TODO: Resolve pending request with this decision

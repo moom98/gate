@@ -14,6 +14,20 @@ export function postRequests(
 ) {
   const request = req.body;
 
+  // Validate required fields
+  if (
+    !request ||
+    typeof request.id !== "string" ||
+    typeof request.summary !== "string" ||
+    !request.details ||
+    typeof request.details.cwd !== "string" ||
+    typeof request.details.command !== "string" ||
+    typeof request.details.rawPrompt !== "string"
+  ) {
+    console.warn("[Broker] Invalid permission request body");
+    return res.status(400).json({ decision: "deny" });
+  }
+
   console.log("[Broker] Received permission request:", {
     id: request.id,
     summary: request.summary,
