@@ -104,10 +104,37 @@ pnpm typecheck    # TypeScript check
 1. **Broker Health Check:**
    ```bash
    curl http://localhost:3000/health
-   # Expected: 200 OK
+   # Expected: 200 OK with JSON: {"status":"ok","timestamp":"...","version":"0.0.1"}
    ```
 
-2. **End-to-End Permission Flow:**
+2. **Broker API Endpoints (Step 2):**
+   ```bash
+   # Test POST /v1/requests (currently returns deny)
+   curl -X POST http://localhost:3000/v1/requests \
+     -H "Content-Type: application/json" \
+     -d '{
+       "id": "test-123",
+       "summary": "Test command",
+       "details": {
+         "cwd": "/tmp",
+         "command": "ls -la",
+         "rawPrompt": "Allow command execution? (y/n)"
+       },
+       "timeoutSec": 60
+     }'
+   # Expected: {"decision":"deny"}
+
+   # Test POST /v1/decisions (currently just logs)
+   curl -X POST http://localhost:3000/v1/decisions \
+     -H "Content-Type: application/json" \
+     -d '{
+       "id": "test-123",
+       "decision": "allow"
+     }'
+   # Expected: {"success":true}
+   ```
+
+3. **End-to-End Permission Flow:**
    - Start broker: `cd apps/broker && pnpm dev`
    - Start web-ui: `cd apps/web-ui && pnpm dev`
    - Start adapter: `cd apps/adapter-claude && pnpm dev`
@@ -116,19 +143,19 @@ pnpm typecheck    # TypeScript check
    - Click "Allow" or "Deny"
    - Verify PTY receives `y` or `n` input
 
-3. **WebSocket Connection:**
+4. **WebSocket Connection:**
    ```bash
    # Using wscat or similar
    wscat -c ws://localhost:3000/ws
    # Expected: Connection established, receives permission_request messages
    ```
 
-4. **Timeout Behavior:**
+5. **Timeout Behavior:**
    - Send permission request
    - Wait 60+ seconds without decision
    - Verify automatic "deny" response
 
-5. **First-Response-Wins:**
+6. **First-Response-Wins:**
    - Send permission request
    - Submit decision from Web UI
    - Attempt second decision
