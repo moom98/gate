@@ -27,14 +27,28 @@ export class PtyManager {
     console.log(`[Adapter] Spawning Claude CLI: ${config.claudeCommand}`);
     console.log(`[Adapter] Working directory: ${config.cwd}`);
 
-    // Spawn PTY process
-    this.ptyProcess = pty.spawn(config.claudeCommand, [], {
-      name: "xterm-color",
-      cols: 80,
-      rows: 30,
-      cwd: config.cwd,
-      env: process.env as { [key: string]: string },
-    });
+    // Spawn PTY process with error handling
+    try {
+      this.ptyProcess = pty.spawn(config.claudeCommand, [], {
+        name: "xterm-color",
+        cols: 80,
+        rows: 30,
+        cwd: config.cwd,
+        env: process.env as { [key: string]: string },
+      });
+    } catch (error) {
+      console.error("[Adapter] Failed to spawn Claude CLI PTY process");
+      console.error(`[Adapter] Command: ${config.claudeCommand}, CWD: ${config.cwd}`);
+      console.error("[Adapter] Spawn error:", error);
+
+      this.ptyProcess = null;
+
+      if (this.options.onExit) {
+        this.options.onExit(1);
+      }
+
+      return;
+    }
 
     // Handle stdout/stderr data
     this.ptyProcess.onData((data: string) => {
@@ -84,7 +98,7 @@ export class PtyManager {
 
     console.log("[Adapter] Killing Claude CLI...");
     this.ptyProcess.kill();
-    this.ptyProcess = null;
+    // Note: ptyProcess will be set to null by onExit handler
   }
 
   /**

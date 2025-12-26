@@ -23,17 +23,34 @@ const ptyManager = new PtyManager({
   },
 });
 
-// Spawn Claude CLI
-ptyManager.spawn();
+// Spawn Claude CLI with error handling
+try {
+  ptyManager.spawn();
+} catch (error) {
+  console.error(
+    "[Adapter] Failed to spawn Claude CLI:",
+    error instanceof Error ? error.message : error
+  );
+  process.exit(1);
+}
+
+// Guard flag to prevent duplicate shutdown
+let isShuttingDown = false;
 
 // Handle process termination
 process.on("SIGINT", () => {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+
   console.log("[Adapter] Received SIGINT, shutting down...");
   ptyManager.kill();
   process.exit(0);
 });
 
 process.on("SIGTERM", () => {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+
   console.log("[Adapter] Received SIGTERM, shutting down...");
   ptyManager.kill();
   process.exit(0);
