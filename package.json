@@ -1,0 +1,36 @@
+{
+  "name": "gate",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Claude Code Permission Gateway - intercept and manage CLI permission requests",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "format": "pnpm -r format",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "clean": "pnpm -r clean && rm -rf node_modules"
+  },
+  "keywords": [
+    "claude-code",
+    "permission-gateway",
+    "pty",
+    "monorepo"
+  ],
+  "author": "",
+  "license": "MIT",
+  "packageManager": "pnpm@8.15.0",
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.2.5",
+    "typescript": "^5.3.3"
+  }
+}
