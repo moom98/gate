@@ -1,8 +1,11 @@
 import * as pty from "node-pty";
 import { AdapterConfig } from "./config";
+import { PatternDetector, DetectionPattern } from "./detection";
+import { BrokerClient } from "./broker-client";
 
 export interface PtyManagerOptions {
   config: AdapterConfig;
+  patterns?: DetectionPattern[];
   onData?: (data: string) => void;
   onExit?: (code: number) => void;
 }
@@ -13,9 +16,17 @@ export interface PtyManagerOptions {
 export class PtyManager {
   private ptyProcess: pty.IPty | null = null;
   private options: PtyManagerOptions;
+  private detector: PatternDetector;
+  private brokerClient: BrokerClient;
+  private isProcessingPermission = false;
 
   constructor(options: PtyManagerOptions) {
     this.options = options;
+    this.detector = new PatternDetector(options.patterns);
+    this.brokerClient = new BrokerClient(
+      options.config.brokerUrl,
+      options.config.brokerToken
+    );
   }
 
   /**
@@ -51,9 +62,50 @@ export class PtyManager {
     }
 
     // Handle stdout/stderr data
-    this.ptyProcess.onData((data: string) => {
+    this.ptyProcess.onData(async (data: string) => {
       // Log output
       process.stdout.write(data);
+
+      // Check for permission prompt pattern
+      if (!this.isProcessingPermission) {
+        const detection = this.detector.process(data);
+
+        if (detection.matched) {
+          console.log(
+            `\n[Adapter] Permission prompt detected: ${detection.patternName}`
+          );
+
+          // Set flag immediately to prevent race condition
+          this.isProcessingPermission = true;
+
+          // Request permission from broker (async operation)
+          (async () => {
+            try {
+              const decision = await this.brokerClient.requestPermission(
+                detection.patternName || "Permission request",
+                {
+                  cwd: detection.cwd || config.cwd,
+                  command: detection.command || "Unknown command",
+                  rawPrompt: detection.rawPrompt,
+                }
+              );
+
+              // Inject decision into PTY
+              const input = decision.decision === "allow" ? "y\n" : "n\n";
+              console.log(`[Adapter] Injecting decision: ${input.trim()}`);
+              this.write(input);
+            } catch (error) {
+              console.error("[Adapter] Error handling permission:", error);
+              // Default to deny on error
+              this.write("n\n");
+            } finally {
+              // Always reset buffer and flag
+              this.detector.reset();
+              this.isProcessingPermission = false;
+            }
+          })();
+        }
+      }
 
       // Call callback if provided
       if (this.options.onData) {

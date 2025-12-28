@@ -1,0 +1,23 @@
+{
+  "patterns": [
+    {
+      "name": "bash_permission",
+      "regex": "allow.*command.*execution.*\\(y\\/n\\)",
+      "description": "Detects bash command execution permission prompts"
+    },
+    {
+      "name": "file_write_permission",
+      "regex": "write.*file.*\\(y\\/n\\)",
+      "description": "Detects file write permission prompts"
+    },
+    {
+      "name": "generic_permission",
+      "regex": "\\(y\\/n\\)\\s*$",
+      "description": "Generic fallback pattern for (y/n) prompts"
+    }
+  ],
+  "detection": {
+    "bufferMaxLines": 50,
+    "contextLines": 5
+  }
+}
