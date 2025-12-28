@@ -44,7 +44,7 @@ process.on("SIGINT", () => {
 
   console.log("[Adapter] Received SIGINT, shutting down...");
   ptyManager.kill();
-  process.exit(0);
+  // Note: onExit handler will call process.exit(code)
 });
 
 process.on("SIGTERM", () => {
@@ -53,5 +53,5 @@ process.on("SIGTERM", () => {
 
   console.log("[Adapter] Received SIGTERM, shutting down...");
   ptyManager.kill();
-  process.exit(0);
+  // Note: onExit handler will call process.exit(code)
 });

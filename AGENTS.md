@@ -138,8 +138,9 @@ pnpm typecheck    # TypeScript check
    ```bash
    # Test adapter spawning Claude CLI
    cd apps/adapter-claude
-   # Configure environment (optional)
+   # Configure environment (optional if 'claude' is in PATH; otherwise set CLAUDE_COMMAND)
    # export CLAUDE_COMMAND="echo"  # For testing without claude
+   # export CLAUDE_COMMAND="cat"   # Alternative test command
    pnpm dev
    # Expected: Adapter spawns CLI and logs output
    # Verify: PTY output is visible

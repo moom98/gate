@@ -72,6 +72,7 @@ export class PtyManager {
       this.ptyProcess = null;
     });
 
+    // Log PID after handlers are set up
     console.log(`[Adapter] Claude CLI spawned successfully (PID: ${this.ptyProcess.pid})`);
   }
 
