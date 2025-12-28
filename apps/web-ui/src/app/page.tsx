@@ -71,7 +71,7 @@ export default function Home() {
             <CardContent className="pt-6">
               <p className={connectionState === "error" ? "text-sm text-red-800" : "text-sm text-yellow-800"}>
                 {connectionState === "error" ? (
-                  <>Connection error. Failed to connect to broker at {" "}
+                  <>Connection error. Failed to connect to broker at{" "}
                   <code className="font-mono bg-red-100 px-1 rounded">{BROKER_URL}</code></>
                 ) : (
                   <>Not connected to broker. Make sure the broker is running at{" "}

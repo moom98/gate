@@ -41,17 +41,21 @@ export function useWebSocket(url: string) {
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const isMountedRef = useRef(true);
+  const removeTimeoutsRef = useRef<Set<NodeJS.Timeout>>(new Set());
 
   useEffect(() => {
     isMountedRef.current = true;
+    const removeTimeouts = removeTimeoutsRef.current;
 
     const connect = () => {
       if (!isMountedRef.current) {
         return; // Prevent connection after unmount
       }
 
+      // Close existing WebSocket if URL changed
       if (wsRef.current?.readyState === WebSocket.OPEN) {
-        return; // Already connected
+        wsRef.current.close();
+        wsRef.current = null;
       }
 
       try {
@@ -78,13 +82,17 @@ export function useWebSocket(url: string) {
                 message.payload.decision
               );
               // Remove resolved request after a delay to show the result
-              setTimeout(() => {
-                setRequests((prev) => {
-                  const next = new Map(prev);
-                  next.delete(message.payload.id);
-                  return next;
-                });
+              const timeoutId = setTimeout(() => {
+                if (isMountedRef.current) {
+                  setRequests((prev) => {
+                    const next = new Map(prev);
+                    next.delete(message.payload.id);
+                    return next;
+                  });
+                }
+                removeTimeouts.delete(timeoutId);
               }, 3000);
+              removeTimeouts.add(timeoutId);
             }
           } catch (error) {
             console.error("[WebSocket] Failed to parse message:", error);
@@ -128,11 +136,19 @@ export function useWebSocket(url: string) {
     return () => {
       isMountedRef.current = false;
 
+      // Clear reconnection timeout
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;
       }
 
+      // Clear all pending remove timeouts
+      removeTimeouts.forEach((timeoutId) => {
+        clearTimeout(timeoutId);
+      });
+      removeTimeouts.clear();
+
+      // Close WebSocket connection
       if (wsRef.current) {
         wsRef.current.close();
         wsRef.current = null;
