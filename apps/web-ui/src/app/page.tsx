@@ -66,12 +66,17 @@ export default function Home() {
         </div>
 
         {/* Footer Info */}
-        {connectionState === "disconnected" && (
-          <Card className="border-yellow-500 bg-yellow-50">
+        {(connectionState === "disconnected" || connectionState === "error") && (
+          <Card className={connectionState === "error" ? "border-red-500 bg-red-50" : "border-yellow-500 bg-yellow-50"}>
             <CardContent className="pt-6">
-              <p className="text-sm text-yellow-800">
-                Not connected to broker. Make sure the broker is running at{" "}
-                <code className="font-mono bg-yellow-100 px-1 rounded">{BROKER_URL}</code>
+              <p className={connectionState === "error" ? "text-sm text-red-800" : "text-sm text-yellow-800"}>
+                {connectionState === "error" ? (
+                  <>Connection error. Failed to connect to broker at {" "}
+                  <code className="font-mono bg-red-100 px-1 rounded">{BROKER_URL}</code></>
+                ) : (
+                  <>Not connected to broker. Make sure the broker is running at{" "}
+                  <code className="font-mono bg-yellow-100 px-1 rounded">{BROKER_URL}</code></>
+                )}
               </p>
             </CardContent>
           </Card>

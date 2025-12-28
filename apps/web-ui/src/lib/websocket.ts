@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 
 /**
  * WebSocket message types from broker
@@ -40,102 +40,108 @@ export function useWebSocket(url: string) {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
-
-  const connect = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      return; // Already connected
-    }
-
-    try {
-      setConnectionState("connecting");
-      const ws = new WebSocket(url);
-
-      ws.onopen = () => {
-        console.log("[WebSocket] Connected to broker");
-        setConnectionState("connected");
-        reconnectAttemptsRef.current = 0;
-      };
-
-      ws.onmessage = (event) => {
-        try {
-          const message = JSON.parse(event.data) as WSMessage;
-
-          if (message.type === "permission_request") {
-            console.log("[WebSocket] Received permission request:", message.payload.id);
-            setRequests((prev) => new Map(prev).set(message.payload.id, message.payload));
-          } else if (message.type === "permission_resolved") {
-            console.log(
-              "[WebSocket] Permission resolved:",
-              message.payload.id,
-              message.payload.decision
-            );
-            // Remove resolved request after a delay to show the result
-            setTimeout(() => {
-              setRequests((prev) => {
-                const next = new Map(prev);
-                next.delete(message.payload.id);
-                return next;
-              });
-            }, 3000);
-          }
-        } catch (error) {
-          console.error("[WebSocket] Failed to parse message:", error);
-        }
-      };
-
-      ws.onerror = (error) => {
-        console.error("[WebSocket] Error:", error);
-        setConnectionState("error");
-      };
-
-      ws.onclose = () => {
-        console.log("[WebSocket] Disconnected");
-        setConnectionState("disconnected");
-        wsRef.current = null;
-
-        // Attempt reconnection with exponential backoff
-        const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
-        console.log(`[WebSocket] Reconnecting in ${delay}ms...`);
-        reconnectAttemptsRef.current++;
-
-        reconnectTimeoutRef.current = setTimeout(() => {
-          connect();
-        }, delay);
-      };
-
-      wsRef.current = ws;
-    } catch (error) {
-      console.error("[WebSocket] Connection failed:", error);
-      setConnectionState("error");
-    }
-  }, [url]);
-
-  const disconnect = useCallback(() => {
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
-    }
-
-    if (wsRef.current) {
-      wsRef.current.close();
-      wsRef.current = null;
-    }
-
-    setConnectionState("disconnected");
-  }, []);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
+    isMountedRef.current = true;
+
+    const connect = () => {
+      if (!isMountedRef.current) {
+        return; // Prevent connection after unmount
+      }
+
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        return; // Already connected
+      }
+
+      try {
+        setConnectionState("connecting");
+        const ws = new WebSocket(url);
+
+        ws.onopen = () => {
+          console.log("[WebSocket] Connected to broker");
+          setConnectionState("connected");
+          reconnectAttemptsRef.current = 0;
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const message = JSON.parse(event.data) as WSMessage;
+
+            if (message.type === "permission_request") {
+              console.log("[WebSocket] Received permission request:", message.payload.id);
+              setRequests((prev) => new Map(prev).set(message.payload.id, message.payload));
+            } else if (message.type === "permission_resolved") {
+              console.log(
+                "[WebSocket] Permission resolved:",
+                message.payload.id,
+                message.payload.decision
+              );
+              // Remove resolved request after a delay to show the result
+              setTimeout(() => {
+                setRequests((prev) => {
+                  const next = new Map(prev);
+                  next.delete(message.payload.id);
+                  return next;
+                });
+              }, 3000);
+            }
+          } catch (error) {
+            console.error("[WebSocket] Failed to parse message:", error);
+          }
+        };
+
+        ws.onerror = (error) => {
+          console.error("[WebSocket] Error:", error);
+          setConnectionState("error");
+        };
+
+        ws.onclose = () => {
+          console.log("[WebSocket] Disconnected");
+          setConnectionState("disconnected");
+          wsRef.current = null;
+
+          // Only attempt reconnection if component is still mounted
+          if (!isMountedRef.current) {
+            return;
+          }
+
+          // Attempt reconnection with exponential backoff
+          const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
+          console.log(`[WebSocket] Reconnecting in ${delay}ms...`);
+          reconnectAttemptsRef.current++;
+
+          reconnectTimeoutRef.current = setTimeout(() => {
+            connect();
+          }, delay);
+        };
+
+        wsRef.current = ws;
+      } catch (error) {
+        console.error("[WebSocket] Connection failed:", error);
+        setConnectionState("error");
+      }
+    };
+
     connect();
 
     return () => {
-      disconnect();
+      isMountedRef.current = false;
+
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
     };
-  }, [connect, disconnect]);
+  }, [url]);
 
   return {
     connectionState,
     requests: Array.from(requests.values()),
-    connect,
-    disconnect,
   };
 }

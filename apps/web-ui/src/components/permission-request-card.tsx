@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PermissionRequest } from "@/lib/websocket";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { BrokerAPI } from "@/lib/api";
 
 interface PermissionRequestCardProps {
@@ -16,7 +16,7 @@ export function PermissionRequestCard({ request, brokerUrl }: PermissionRequestC
   const [error, setError] = useState<string | null>(null);
   const [resolved, setResolved] = useState(false);
 
-  const api = new BrokerAPI(brokerUrl);
+  const api = useMemo(() => new BrokerAPI(brokerUrl), [brokerUrl]);
 
   const handleDecision = async (decision: "allow" | "deny") => {
     setIsProcessing(true);
