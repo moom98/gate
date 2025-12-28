@@ -13,7 +13,7 @@ permissions:
 
 # Prevent concurrent runs on the same PR
 concurrency:
-  group: copilot-review-${{ github.event.pull_request.number }}
+  group: copilot-review-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: false
 
 jobs:
