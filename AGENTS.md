@@ -215,11 +215,47 @@ pnpm typecheck    # TypeScript check
    - Verify PTY receives `y` or `n` input
    - Verify 409 Conflict response
 
+6. **GitHub Actions自動化テスト:**
+   ```bash
+   # Copilot Review Auto-Handlerのテスト
+
+   # 方法1: 実際のPRでCopilotレビューをトリガー
+   git checkout -b test/copilot-automation
+   # コードを変更
+   git commit -am "test: trigger copilot review"
+   git push -u origin test/copilot-automation
+   gh pr create --title "Test: Copilot Automation" --body "Testing auto-review"
+   # Copilotレビューを待つ（または手動でレビューコメントを追加）
+
+   # ワークフロー実行を確認
+   gh run list --workflow=copilot-review-to-claude.yml --limit 5
+   gh run view <run-id> --log
+
+   # 期待される動作:
+   # - Copilotレビュー検知
+   # - マーカーチェック（初回はスキップ）
+   # - Claude実行・修正・push
+   # - PRに [claude-copilot-handled] マーカー付きコメント投稿
+
+   # 方法2: ワークフローログで動作確認
+   # Actions > Copilot Review Auto-Handler > 最新実行
+   # - "Debug Event Info" でトリガー情報確認
+   # - "Check for existing Claude handling marker" で重複実行防止確認
+   # - "Check retry limit" でリトライカウント確認
+   # - "Run Claude Code to fix review issues" でClaude実行結果確認
+
+   # 無限ループ対策テスト:
+   # - 同一PRで3回目のCopilotレビューをトリガー
+   # - Expected: リトライ上限（2回）超過でスキップ
+   # - ログに "Retry limit exceeded" が表示されること
+   ```
+
 **Automated Testing (Future):**
 - Unit tests for detection regex patterns
 - Integration tests for broker API endpoints
 - E2E tests for full permission flow
 - WebSocket connection/reconnection tests
+- GitHub Actions workflow testing (mock events)
 
 **Pre-commit Checklist:**
 - [ ] `pnpm -r lint` passes

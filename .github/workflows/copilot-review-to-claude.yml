@@ -1,0 +1,217 @@
+name: Copilot Review Auto-Handler
+
+on:
+  pull_request_review:
+    types: [submitted]
+  pull_request_review_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+# Prevent concurrent runs on the same PR
+concurrency:
+  group: copilot-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  handle-copilot-review:
+    runs-on: ubuntu-latest
+
+    # Only run if triggered by Copilot
+    if: |
+      (github.event_name == 'pull_request_review' && contains(toLower(github.event.review.user.login), 'copilot')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(toLower(github.event.comment.user.login), 'copilot'))
+
+    steps:
+      - name: Debug Event Info
+        run: |
+          echo "Event: ${{ github.event_name }}"
+          echo "Actor: ${{ github.actor }}"
+          if [ "${{ github.event_name }}" = "pull_request_review" ]; then
+            echo "Review User: ${{ github.event.review.user.login }}"
+            echo "Review State: ${{ github.event.review.state }}"
+          elif [ "${{ github.event_name }}" = "pull_request_review_comment" ]; then
+            echo "Comment User: ${{ github.event.comment.user.login }}"
+          fi
+          echo "PR Number: ${{ github.event.pull_request.number }}"
+
+      - name: Check if this specific review was already handled
+        id: check_handled
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get PR number
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+
+          # Get timestamp of the triggering Copilot review
+          if [ "${{ github.event_name }}" = "pull_request_review" ]; then
+            COPILOT_REVIEW_TIME="${{ github.event.review.submitted_at }}"
+          elif [ "${{ github.event_name }}" = "pull_request_review_comment" ]; then
+            COPILOT_REVIEW_TIME="${{ github.event.comment.created_at }}"
+          fi
+
+          echo "Copilot review timestamp: $COPILOT_REVIEW_TIME"
+
+          # Get timestamp of the most recent Claude handling marker
+          MARKER="[claude-copilot-handled]"
+          LATEST_CLAUDE_MARKER_TIME=$(gh api repos/${{ github.repository }}/issues/${PR_NUMBER}/comments \
+            --jq '.[] | select(.body | contains("'"$MARKER"'")) | .created_at' | sort -r | head -1)
+
+          if [ -z "$LATEST_CLAUDE_MARKER_TIME" ]; then
+            echo "handled=false" >> $GITHUB_OUTPUT
+            echo "No Claude handling marker found, proceeding..."
+          elif [[ "$COPILOT_REVIEW_TIME" > "$LATEST_CLAUDE_MARKER_TIME" ]]; then
+            echo "handled=false" >> $GITHUB_OUTPUT
+            echo "Copilot review is newer than latest Claude marker, proceeding..."
+          else
+            echo "handled=true" >> $GITHUB_OUTPUT
+            echo "Copilot review already handled (Claude marker is newer)"
+          fi
+
+      - name: Check retry limit
+        id: check_retry
+        if: steps.check_handled.outputs.handled == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+
+          # Count Claude handling comments
+          MARKER="[claude-copilot-handled]"
+          COUNT=$(gh api repos/${{ github.repository }}/issues/${PR_NUMBER}/comments \
+            --jq '[.[] | select(.body | contains("'"$MARKER"'"))] | length')
+
+          echo "Claude handling count: $COUNT"
+
+          # Maximum 2 auto-fixes per PR
+          if [ "$COUNT" -ge 2 ]; then
+            echo "exceeded=true" >> $GITHUB_OUTPUT
+            echo "⚠️ Retry limit exceeded ($COUNT/2). Skipping auto-fix."
+          else
+            echo "exceeded=false" >> $GITHUB_OUTPUT
+            echo "Retry count OK ($COUNT/2). Proceeding..."
+          fi
+
+      - name: Checkout PR branch
+        if: steps.check_handled.outputs.handled == 'false' && steps.check_retry.outputs.exceeded == 'false'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enable Corepack
+        if: steps.check_handled.outputs.handled == 'false' && steps.check_retry.outputs.exceeded == 'false'
+        run: corepack enable
+
+      - name: Setup Node.js
+        if: steps.check_handled.outputs.handled == 'false' && steps.check_retry.outputs.exceeded == 'false'
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        if: steps.check_handled.outputs.handled == 'false' && steps.check_retry.outputs.exceeded == 'false'
+        run: pnpm install --frozen-lockfile
+
+      - name: Collect Copilot review comments
+        if: steps.check_handled.outputs.handled == 'false' && steps.check_retry.outputs.exceeded == 'false'
+        id: collect_reviews
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+
+          # Get review comments
+          echo "## Copilot Review Comments" > review_summary.md
+          echo "" >> review_summary.md
+
+          # Get PR review comments (inline comments)
+          gh api repos/${{ github.repository }}/pulls/${PR_NUMBER}/comments \
+            --jq '.[] | select(.user.login | ascii_downcase | contains("copilot")) | "### \(.path):\(.line)\n\(.body)\n"' \
+            >> review_summary.md || true
+
+          # Get general review comments
+          gh api repos/${{ github.repository }}/pulls/${PR_NUMBER}/reviews \
+            --jq '.[] | select(.user.login | ascii_downcase | contains("copilot")) | select(.body != null and .body != "") | "### Review Comment\n\(.body)\n"' \
+            >> review_summary.md || true
+
+          echo "Review summary collected"
+          cat review_summary.md
+
+      - name: Run Claude Code to fix review issues
+        id: run_claude
+        if: steps.check_handled.outputs.handled == 'false' && steps.check_retry.outputs.exceeded == 'false'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          # Install Claude Code if not available
+          if ! command -v claude &> /dev/null; then
+            echo "Installing Claude Code..."
+            npm install -g @anthropics/claude-code
+          fi
+
+          # Prepare prompt for Claude
+          PROMPT="PR #${{ github.event.pull_request.number }} にCopilotからのレビューが来ています。必要なもののみ対応してください。
+
+$(cat review_summary.md)
+
+対応後、以下を実行してください:
+1. pnpm -r lint
+2. pnpm -r typecheck
+3. pnpm -r build
+4. git add で変更をステージング
+5. git commit でコミット（日本語のコミットメッセージ）
+6. git push で現在のブランチにプッシュ
+
+変更内容の要約を最後に出力してください。"
+
+          if echo "$PROMPT" | claude --non-interactive --yes; then
+            echo "success=true" >> $GITHUB_OUTPUT
+            echo "✓ Claude execution succeeded"
+          else
+            echo "success=false" >> $GITHUB_OUTPUT
+            echo "⚠️ Claude execution failed"
+            exit 1
+          fi
+
+      - name: Post summary comment to PR
+        if: steps.check_handled.outputs.handled == 'false' && steps.check_retry.outputs.exceeded == 'false' && steps.run_claude.outputs.success == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+
+          # Create summary comment with marker
+          COMMENT="## 🤖 Claude Code - Copilot Review対応完了
+
+Copilotのレビューコメントに対して自動修正を実行しました。
+
+### 対応内容
+- Copilotの指摘事項を確認
+- 必要な修正を実施
+- lint/typecheck/buildを実行して確認
+- 変更をコミット・プッシュ
+
+詳細は最新のコミットをご確認ください。
+
+---
+[claude-copilot-handled]
+_このPRでのClaude自動対応: $(( $(gh api repos/${{ github.repository }}/issues/${PR_NUMBER}/comments --jq '[.[] | select(.body | contains("[claude-copilot-handled]"))] | length') + 1 ))/2_"
+
+          gh pr comment ${PR_NUMBER} --body "$COMMENT"
+
+      - name: Skip notification
+        if: steps.check_handled.outputs.handled == 'true' || steps.check_retry.outputs.exceeded == 'true'
+        run: |
+          if [ "${{ steps.check_handled.outputs.handled }}" = "true" ]; then
+            echo "✓ Already handled by Claude - skipping"
+          fi
+          if [ "${{ steps.check_retry.outputs.exceeded }}" = "true" ]; then
+            echo "⚠️ Retry limit exceeded - manual intervention required"
+          fi
