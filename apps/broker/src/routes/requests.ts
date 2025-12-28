@@ -1,14 +1,15 @@
 import { Request, Response } from "express";
 import { PermissionRequest, PermissionResponse } from "../types";
+import { pendingRequests } from "../pending-requests";
+import { wsManager } from "../websocket";
 
 /**
  * POST /v1/requests
  * Receive permission request from adapter
  *
- * TODO (Step 4): Implement deferred response pattern with WebSocket broadcast
- * For now, returns deny immediately
+ * Creates pending request, broadcasts to WebSocket clients, waits for decision
  */
-export function postRequests(
+export async function postRequests(
   req: Request<unknown, PermissionResponse, PermissionRequest>,
   res: Response<PermissionResponse>
 ) {
@@ -35,9 +36,18 @@ export function postRequests(
     command: request.details.command,
   });
 
-  // TODO: Create pending request, broadcast to WebSocket clients, wait for decision
-  // For now, immediately deny all requests
-  res.json({
-    decision: "deny",
-  });
+  // Create pending request and broadcast to WebSocket clients
+  const decisionPromise = pendingRequests.create(request);
+  wsManager.broadcastRequest(request);
+
+  try {
+    // Wait for decision (will timeout after timeoutSec)
+    const decision = await decisionPromise;
+
+    // Return decision to adapter
+    res.json(decision);
+  } catch (error) {
+    console.error("[Broker] Error while waiting for permission decision:", error);
+    res.status(500).json({ decision: "deny" });
+  }
 }

@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import { getHealth } from "./routes/health";
 import { postRequests } from "./routes/requests";
 import { postDecisions } from "./routes/decisions";
+import { wsManager } from "./websocket";
 
 // Load environment variables
 dotenv.config();
@@ -47,8 +48,12 @@ app.use(
 
 // Start server
 const server = app.listen(PORT, () => {
+  // Initialize WebSocket server after HTTP server is listening
+  wsManager.init(server);
+
   console.log(`[Broker] Server running on http://localhost:${PORT}`);
   console.log(`[Broker] Health check: http://localhost:${PORT}/health`);
+  console.log(`[Broker] WebSocket endpoint: ws://localhost:${PORT}/ws`);
   console.log(`[Broker] Version: 0.0.1`);
 });
 

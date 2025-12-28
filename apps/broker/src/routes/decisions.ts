@@ -1,12 +1,13 @@
 import { Request, Response } from "express";
 import { DecisionPayload } from "../types";
+import { pendingRequests } from "../pending-requests";
+import { wsManager } from "../websocket";
 
 /**
  * POST /v1/decisions
  * Receive decision from client (web-ui/iOS)
  *
- * TODO (Step 4): Implement actual decision resolution logic
- * For now, just accepts the decision and logs it
+ * Resolves pending request and broadcasts resolution to WebSocket clients
  */
 export function postDecisions(
   req: Request<unknown, { success: boolean }, DecisionPayload>,
@@ -26,9 +27,17 @@ export function postDecisions(
 
   console.log("[Broker] Received decision:", { id, decision });
 
-  // TODO: Resolve pending request with this decision
-  // TODO: Return 409 if request already resolved
-  // TODO: Broadcast resolution to WebSocket clients
+  // Attempt to resolve pending request
+  const resolved = pendingRequests.resolve(id, { decision });
+
+  // If already resolved, return 409 Conflict
+  if (!resolved) {
+    console.warn(`[Broker] Decision for ${id} rejected (already resolved or not found)`);
+    return res.status(409).json({ success: false });
+  }
+
+  // Broadcast resolution to WebSocket clients
+  wsManager.broadcastResolution(id, decision);
 
   res.json({ success: true });
 }
