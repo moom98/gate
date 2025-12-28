@@ -231,7 +231,50 @@ pnpm typecheck    # TypeScript check
    # - "[Adapter] Injecting decision: y/n"
    ```
 
-6. **End-to-End Permission Flow:**
+6. **Web UI WebSocket Integration (Step 6):**
+   ```bash
+   # Terminal 1: Start broker
+   cd apps/broker
+   pnpm dev
+   # Expected: Broker starts on http://localhost:3000
+
+   # Terminal 2: Start web-ui
+   cd apps/web-ui
+   pnpm dev
+   # Expected: Web UI starts on http://localhost:3001
+
+   # Open browser: http://localhost:3001
+   # Expected: "● Connected" badge (green)
+   # Expected: "No pending requests" message
+
+   # Terminal 3: Test with mock request
+   curl -X POST http://localhost:3000/v1/requests \
+     -H "Content-Type: application/json" \
+     -d '{
+       "id": "test-ui-123",
+       "summary": "Test UI Integration",
+       "details": {
+         "cwd": "/tmp",
+         "command": "echo test",
+         "rawPrompt": "Allow echo test? (y/n)"
+       },
+       "timeoutSec": 60
+     }' &
+
+   # Expected in Web UI:
+   # - Request card appears immediately
+   # - Shows summary, command, cwd, rawPrompt
+   # - Allow/Deny buttons enabled
+
+   # Click "Allow" or "Deny" button
+   # Expected:
+   # - Button shows "Sending..."
+   # - "Decision sent successfully" message appears
+   # - Card disappears after 3 seconds
+   # - Terminal 3 curl returns {"decision":"allow"} or {"decision":"deny"}
+   ```
+
+7. **End-to-End Permission Flow:**
    - Start broker: `cd apps/broker && pnpm dev`
    - Start web-ui: `cd apps/web-ui && pnpm dev`
    - Start adapter: `cd apps/adapter-claude && pnpm dev`
@@ -241,7 +284,7 @@ pnpm typecheck    # TypeScript check
    - Verify PTY receives `y` or `n` input
    - Verify adapter continues operation
 
-7. **GitHub Actions自動化テスト:**
+8. **GitHub Actions自動化テスト:**
    ```bash
    # Copilot Review Auto-Handlerのテスト
 
