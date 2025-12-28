@@ -249,6 +249,40 @@ Each major feature is developed in its own branch:
 
 MIT
 
+## Automation
+
+### Copilot Review Auto-Handler
+
+Gate includes GitHub Actions automation that automatically handles Copilot code reviews:
+
+**What it does:**
+1. Detects when GitHub Copilot posts a review comment on a PR
+2. Automatically runs Claude Code to fix the issues
+3. Commits and pushes the fixes
+4. Posts a summary comment on the PR
+
+**Setup:**
+
+Add one of the following secrets to your repository:
+
+```bash
+# Option 1 (Recommended): Claude Code OAuth Token
+# Settings > Secrets and variables > Actions > New repository secret
+# Name: CLAUDE_CODE_OAUTH_TOKEN
+# Value: <token from `cat ~/.config/claude-code/auth.json`>
+
+# Option 2 (Alternative): Anthropic API Key
+# Name: ANTHROPIC_API_KEY
+# Value: <your API key from https://console.anthropic.com/>
+```
+
+**Safety features:**
+- Maximum 2 auto-fixes per PR (prevents infinite loops)
+- Marker-based duplicate detection (`[claude-copilot-handled]`)
+- Concurrent execution prevention
+
+For detailed documentation, see [docs/automation.md](docs/automation.md).
+
 ## Support
 
 For issues and feature requests, please use the GitHub issue tracker.
