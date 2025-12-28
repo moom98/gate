@@ -43,8 +43,14 @@ fi
 
 # 4. Update BROKER_URL in .env.local to match broker's PORT
 if [ -f "$ADAPTER_DIR/.env.local" ]; then
-    # Update BROKER_URL to match broker's PORT
-    sed -i.bak "s|^BROKER_URL=.*|BROKER_URL=$BROKER_URL|" "$ADAPTER_DIR/.env.local"
+    # Update BROKER_URL to match broker's PORT (cross-platform sed)
+    if [ "$(uname)" = "Darwin" ]; then
+        # macOS
+        sed -i .bak "s|^BROKER_URL=.*|BROKER_URL=$BROKER_URL|" "$ADAPTER_DIR/.env.local"
+    else
+        # Linux
+        sed -i.bak "s|^BROKER_URL=.*|BROKER_URL=$BROKER_URL|" "$ADAPTER_DIR/.env.local"
+    fi
     echo "✓ Updated BROKER_URL to $BROKER_URL"
 else
     echo "⚠ WARNING: .env.local not found in adapter-claude"
@@ -57,18 +63,37 @@ echo "  1. Make sure broker is running: cd apps/broker && pnpm dev"
 echo "  2. Note the pairing code displayed in broker console"
 echo "  3. Open Web UI: http://localhost:3001"
 echo "  4. Enter the pairing code"
-echo "  5. After successful pairing, you can find the token in browser localStorage"
+echo "  5. After successful pairing, you can find the token in browser localStorage under the key 'token'"
 echo "     (Open DevTools > Application > localStorage > token)"
 echo ""
-echo "Enter BROKER_TOKEN (or press Enter to skip for now):"
-read -r BROKER_TOKEN
+echo "Enter BROKER_TOKEN (input will be hidden, or press Enter to skip):"
+read -rs BROKER_TOKEN
+echo ""
 
 if [ -n "$BROKER_TOKEN" ]; then
-    # Update .env.local with token
-    if grep -q "^BROKER_TOKEN=" "$ADAPTER_DIR/.env.local" 2>/dev/null; then
-        sed -i.bak "s|^BROKER_TOKEN=.*|BROKER_TOKEN=$BROKER_TOKEN|" "$ADAPTER_DIR/.env.local"
+    # Ensure .env.local exists
+    if [ ! -f "$ADAPTER_DIR/.env.local" ]; then
+        touch "$ADAPTER_DIR/.env.local"
+    fi
+
+    # Update .env.local with token (cross-platform sed)
+    if grep -qE '^[[:space:]]*BROKER_TOKEN=' "$ADAPTER_DIR/.env.local" 2>/dev/null; then
+        # Replace existing uncommented BROKER_TOKEN line
+        if [ "$(uname)" = "Darwin" ]; then
+            sed -i .bak "s|^[[:space:]]*BROKER_TOKEN=.*|BROKER_TOKEN=$BROKER_TOKEN|" "$ADAPTER_DIR/.env.local"
+        else
+            sed -i.bak "s|^[[:space:]]*BROKER_TOKEN=.*|BROKER_TOKEN=$BROKER_TOKEN|" "$ADAPTER_DIR/.env.local"
+        fi
+    elif grep -qE '^[[:space:]]*#\s*BROKER_TOKEN=' "$ADAPTER_DIR/.env.local" 2>/dev/null; then
+        # Uncomment and replace existing commented BROKER_TOKEN line
+        if [ "$(uname)" = "Darwin" ]; then
+            sed -i .bak "s|^[[:space:]]*#\s*BROKER_TOKEN=.*|BROKER_TOKEN=$BROKER_TOKEN|" "$ADAPTER_DIR/.env.local"
+        else
+            sed -i.bak "s|^[[:space:]]*#\s*BROKER_TOKEN=.*|BROKER_TOKEN=$BROKER_TOKEN|" "$ADAPTER_DIR/.env.local"
+        fi
     else
-        sed -i.bak "s|^# BROKER_TOKEN=.*|BROKER_TOKEN=$BROKER_TOKEN|" "$ADAPTER_DIR/.env.local"
+        # No existing entry; append a new BROKER_TOKEN line
+        echo "BROKER_TOKEN=$BROKER_TOKEN" >> "$ADAPTER_DIR/.env.local"
     fi
     echo "✓ Updated BROKER_TOKEN"
 else
