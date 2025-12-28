@@ -274,7 +274,65 @@ pnpm typecheck    # TypeScript check
    # - Terminal 3 curl returns {"decision":"allow"} or {"decision":"deny"}
    ```
 
-7. **End-to-End Permission Flow:**
+7. **Token Pairing and Authentication (Step 7):**
+   ```bash
+   # Terminal 1: Start broker
+   cd apps/broker
+   pnpm dev
+   # Expected: Broker displays pairing code in console
+   # Example output:
+   # ┌─────────────────────────────────────────┐
+   # │         PAIRING CODE                    │
+   # │                                         │
+   # │         123456                          │
+   # │                                         │
+   # │  Use this code to pair clients          │
+   # │  Expires in 5 minutes                   │
+   # └─────────────────────────────────────────┘
+
+   # Terminal 2: Start web-ui
+   cd apps/web-ui
+   pnpm dev
+   # Expected: Web UI starts on http://localhost:3001
+
+   # Open browser: http://localhost:3001
+   # Expected: Redirected to /pair page
+   # Expected: Pairing code input form
+
+   # Enter the 6-digit code from broker console
+   # Expected: Redirected to home page
+   # Expected: "● Connected" badge (green)
+   # Expected: Logout button visible
+
+   # Test authentication:
+   # - Close browser tab
+   # - Reopen http://localhost:3001
+   # Expected: Automatically connected (token stored in localStorage)
+
+   # Test token on decisions endpoint:
+   curl -X POST http://localhost:3000/v1/decisions \
+     -H "Content-Type: application/json" \
+     -d '{"id":"test-123","decision":"allow"}'
+   # Expected: 401 Unauthorized (missing token)
+
+   # Test WebSocket without token:
+   # Use WebSocket test tool to connect to ws://localhost:3000/ws
+   # Expected: Connection rejected
+
+   # Generate new pairing code:
+   curl -X POST http://localhost:3000/v1/pair/generate
+   # Expected: {"success":true,"code":"123456","expiresIn":"5 minutes"}
+
+   # Test adapter with token:
+   cd apps/adapter-claude
+   # Add BROKER_TOKEN to .env file (get from web-ui localStorage or pair via API)
+   export BROKER_TOKEN=your-jwt-token
+   export BROKER_URL=http://localhost:3000
+   pnpm dev
+   # Expected: Adapter connects successfully
+   ```
+
+8. **End-to-End Permission Flow:**
    - Start broker: `cd apps/broker && pnpm dev`
    - Start web-ui: `cd apps/web-ui && pnpm dev`
    - Start adapter: `cd apps/adapter-claude && pnpm dev`
@@ -284,7 +342,7 @@ pnpm typecheck    # TypeScript check
    - Verify PTY receives `y` or `n` input
    - Verify adapter continues operation
 
-8. **GitHub Actions自動化テスト:**
+9. **GitHub Actions自動化テスト:**
    ```bash
    # Copilot Review Auto-Handlerのテスト
 

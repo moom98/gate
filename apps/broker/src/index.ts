@@ -5,12 +5,20 @@ import { getHealth } from "./routes/health";
 import { postRequests } from "./routes/requests";
 import { postDecisions } from "./routes/decisions";
 import { wsManager } from "./websocket";
+import { AuthService } from "./auth";
+import { PairingCodeStore } from "./pairing-codes";
+import { createPairRouter } from "./routes/pair";
+import { requireAuth } from "./middleware/auth";
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Initialize auth services
+const authService = new AuthService(process.env.JWT_SECRET);
+const pairingCodeStore = new PairingCodeStore();
 
 // Middleware
 app.use(cors());
@@ -24,8 +32,9 @@ app.use((req, _res, next) => {
 
 // Routes
 app.get("/health", getHealth);
+app.use("/v1/pair", createPairRouter(authService, pairingCodeStore));
 app.post("/v1/requests", postRequests);
-app.post("/v1/decisions", postDecisions);
+app.post("/v1/decisions", requireAuth(authService), postDecisions);
 
 // Error handling middleware (must come after all routes)
 app.use(
@@ -49,12 +58,25 @@ app.use(
 // Start server
 const server = app.listen(PORT, () => {
   // Initialize WebSocket server after HTTP server is listening
-  wsManager.init(server);
+  wsManager.init(server, authService);
 
   console.log(`[Broker] Server running on http://localhost:${PORT}`);
   console.log(`[Broker] Health check: http://localhost:${PORT}/health`);
   console.log(`[Broker] WebSocket endpoint: ws://localhost:${PORT}/ws`);
   console.log(`[Broker] Version: 0.0.1`);
+  console.log("");
+
+  // Generate initial pairing code for easy setup
+  const initialCode = pairingCodeStore.generateCode();
+  console.log("┌─────────────────────────────────────────┐");
+  console.log("│         PAIRING CODE                    │");
+  console.log("│                                         │");
+  console.log(`│         ${initialCode}                        │`);
+  console.log("│                                         │");
+  console.log("│  Use this code to pair clients          │");
+  console.log("│  Expires in 5 minutes                   │");
+  console.log("└─────────────────────────────────────────┘");
+  console.log("");
 });
 
 server.on("error", (err: NodeJS.ErrnoException) => {

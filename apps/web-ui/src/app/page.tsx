@@ -1,14 +1,45 @@
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { PermissionRequestCard } from "@/components/permission-request-card";
 import { useWebSocket } from "@/lib/websocket";
+import { AuthStorage } from "@/lib/auth";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 const BROKER_URL = process.env.NEXT_PUBLIC_BROKER_URL || "http://localhost:3000";
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:3000/ws";
 
 export default function Home() {
-  const { connectionState, requests } = useWebSocket(WS_URL);
+  const router = useRouter();
+  const [token, setToken] = useState<string | null>(null);
+  const [clientId, setClientId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const storedToken = AuthStorage.getToken();
+    const storedClientId = AuthStorage.getClientId();
+
+    if (!storedToken) {
+      router.push("/pair");
+      return;
+    }
+
+    setToken(storedToken);
+    setClientId(storedClientId);
+  }, [router]);
+
+  const wsUrlWithToken = token ? `${WS_URL}?token=${encodeURIComponent(token)}` : WS_URL;
+  const { connectionState, requests } = useWebSocket(wsUrlWithToken);
+
+  const handleLogout = () => {
+    AuthStorage.clearAuth();
+    router.push("/pair");
+  };
+
+  if (!token) {
+    return null; // Redirect in progress
+  }
 
   const getConnectionBadge = () => {
     switch (connectionState) {
@@ -27,10 +58,22 @@ export default function Home() {
     <main className="min-h-screen p-8 bg-gray-50">
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Header */}
-        <div className="text-center space-y-2">
-          <h1 className="text-4xl font-bold">Gate</h1>
-          <p className="text-muted-foreground">Claude Code Permission Gateway</p>
-          <div className="text-sm font-mono">{getConnectionBadge()}</div>
+        <div className="space-y-4">
+          <div className="flex justify-between items-start">
+            <div className="text-center flex-1 space-y-2">
+              <h1 className="text-4xl font-bold">Gate</h1>
+              <p className="text-muted-foreground">Claude Code Permission Gateway</p>
+              <div className="text-sm font-mono">{getConnectionBadge()}</div>
+              {clientId && (
+                <p className="text-xs text-muted-foreground">
+                  Client ID: {clientId.slice(0, 8)}...
+                </p>
+              )}
+            </div>
+            <Button onClick={handleLogout} variant="outline" size="sm">
+              Logout
+            </Button>
+          </div>
         </div>
 
         {/* Info Card */}

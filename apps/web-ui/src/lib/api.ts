@@ -1,5 +1,7 @@
 "use client";
 
+import { AuthStorage } from "./auth";
+
 /**
  * Decision payload for POST /v1/decisions
  */
@@ -30,12 +32,18 @@ export class BrokerAPI {
    */
   async sendDecision(id: string, decision: "allow" | "deny"): Promise<DecisionResponse> {
     const payload: DecisionPayload = { id, decision };
+    const token = AuthStorage.getToken();
+
+    if (!token) {
+      throw new Error("Not authenticated");
+    }
 
     try {
       const response = await fetch(`${this.baseUrl}/v1/decisions`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
         },
         body: JSON.stringify(payload),
       });
