@@ -16,14 +16,27 @@ interface PairingCodeEntry {
 export class PairingCodeStore {
   private codes: Map<string, PairingCodeEntry> = new Map();
   private codeExpiryMinutes: number;
+  private cleanupInterval: NodeJS.Timeout | null = null;
 
   constructor(codeExpiryMinutes: number = 5) {
     this.codeExpiryMinutes = codeExpiryMinutes;
 
     // Clean up expired codes every minute
-    setInterval(() => {
+    this.cleanupInterval = setInterval(() => {
       this.cleanupExpiredCodes();
     }, 60 * 1000);
+  }
+
+  /**
+   * Clean up and stop the interval timer
+   * Call this when shutting down to prevent memory leaks
+   */
+  destroy(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+    this.codes.clear();
   }
 
   /**

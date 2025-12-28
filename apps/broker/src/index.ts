@@ -33,7 +33,7 @@ app.use((req, _res, next) => {
 // Routes
 app.get("/health", getHealth);
 app.use("/v1/pair", createPairRouter(authService, pairingCodeStore));
-app.post("/v1/requests", postRequests);
+app.post("/v1/requests", requireAuth(authService), postRequests);
 app.post("/v1/decisions", requireAuth(authService), postDecisions);
 
 // Error handling middleware (must come after all routes)
@@ -66,17 +66,22 @@ const server = app.listen(PORT, () => {
   console.log(`[Broker] Version: 0.0.1`);
   console.log("");
 
-  // Generate initial pairing code for easy setup
-  const initialCode = pairingCodeStore.generateCode();
-  console.log("┌─────────────────────────────────────────┐");
-  console.log("│         PAIRING CODE                    │");
-  console.log("│                                         │");
-  console.log(`│         ${initialCode}                        │`);
-  console.log("│                                         │");
-  console.log("│  Use this code to pair clients          │");
-  console.log("│  Expires in 5 minutes                   │");
-  console.log("└─────────────────────────────────────────┘");
-  console.log("");
+  // Generate initial pairing code for easy setup (non-production only)
+  if (process.env.NODE_ENV !== "production") {
+    const initialCode = pairingCodeStore.generateCode();
+    console.log("┌─────────────────────────────────────────┐");
+    console.log("│         PAIRING CODE                    │");
+    console.log("│                                         │");
+    console.log(`│         ${initialCode}                        │`);
+    console.log("│                                         │");
+    console.log("│  Use this code to pair clients          │");
+    console.log("│  Expires in 5 minutes                   │");
+    console.log("└─────────────────────────────────────────┘");
+    console.log("");
+  } else {
+    console.log("[Broker] Production mode: Use POST /v1/pair/generate to create pairing codes");
+    console.log("");
+  }
 });
 
 server.on("error", (err: NodeJS.ErrnoException) => {

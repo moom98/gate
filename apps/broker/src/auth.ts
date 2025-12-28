@@ -50,7 +50,8 @@ export class AuthService {
       const decoded = jwt.verify(token, this.secret) as TokenPayload;
       return decoded;
     } catch (error) {
-      console.error("[Auth] Token verification failed:", error);
+      const message = error instanceof Error ? error.message : String(error);
+      console.error("[Auth] Token verification failed:", message);
       return null;
     }
   }
