@@ -125,9 +125,19 @@ export class PatternDetector {
     const context = this.buffer.getContext(5);
 
     for (const pattern of this.patterns) {
+      // Debug mode: log pattern matching attempts
+      if (process.env.DEBUG_MODE === "true") {
+        console.log(`[DEBUG] Testing pattern: ${pattern.name}`);
+        console.log(`[DEBUG] Against line: ${JSON.stringify(lastLine)}`);
+      }
+
       const match = lastLine.match(pattern.regex);
 
       if (match) {
+        if (process.env.DEBUG_MODE === "true") {
+          console.log(`[DEBUG] Pattern matched: ${pattern.name}`);
+        }
+
         return {
           matched: true,
           patternName: pattern.name,
