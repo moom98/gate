@@ -73,7 +73,24 @@ pnpm -r build
 cd apps/broker
 pnpm dev
 ```
-The broker will start on `http://localhost:3000` and display a pairing code (to be implemented in later steps).
+The broker will start on `http://localhost:3000` and display a 6-digit pairing code.
+
+**Example output:**
+
+```text
+[Broker] Server running on http://localhost:3000
+[Broker] Health check: http://localhost:3000/health
+[Broker] WebSocket endpoint: ws://localhost:3000/ws
+
+┌─────────────────────────────────────────┐
+│         PAIRING CODE                    │
+│                                         │
+│         123456                          │
+│                                         │
+│  Use this code to pair clients          │
+│  Expires in 5 minutes                   │
+└─────────────────────────────────────────┘
+```
 
 #### Terminal 2: Start Web UI
 ```bash
@@ -82,12 +99,44 @@ pnpm dev
 ```
 The web UI will be available at `http://localhost:3001`.
 
-#### Terminal 3: Start Adapter
+**First-time setup:**
+
+1. Open `http://localhost:3001`
+2. You'll be redirected to `/pair` page
+3. Enter the 6-digit code from the broker console
+4. Click "Pair Device"
+5. You'll be redirected to the main dashboard
+
+The authentication token is stored in localStorage, so you won't need to pair again unless you clear browser data or logout.
+
+#### Terminal 3: Start Adapter (Optional)
 ```bash
 cd apps/adapter-claude
+
+# Create .env file with your token
+echo "BROKER_URL=http://localhost:3000" > .env
+echo "BROKER_TOKEN=<get-from-web-ui-or-pair-api>" >> .env
+
 pnpm dev
 ```
 The adapter will spawn the Claude Code CLI and monitor for permission prompts.
+
+**Getting a token for the adapter:**
+
+- Option 1: Pair via web UI, then check localStorage in browser DevTools
+- Option 2: Pair via API:
+
+  ```bash
+  # Generate code
+  curl -X POST http://localhost:3000/v1/pair/generate
+
+  # Pair with code
+  curl -X POST http://localhost:3000/v1/pair \
+    -H "Content-Type: application/json" \
+    -d '{"code":"123456"}'
+
+  # Copy the token from response and add to .env
+  ```
 
 ## Development Commands
 
@@ -160,18 +209,21 @@ gate/
 └── README.md                # This file
 ```
 
-## Demo Procedure (Planned for Future Steps)
+## Implementation Status
 
-This section will be updated as features are implemented:
+✅ **Completed Steps:**
 
-1. **Step 1 (Current)**: Bootstrap project structure
-2. **Step 2**: Implement broker skeleton with basic HTTP endpoints
-3. **Step 3**: Add PTY wrapper to spawn Claude CLI
-4. **Step 4**: Add WebSocket support to broker
-5. **Step 5**: Implement pattern detection and y/n injection in adapter
-6. **Step 6**: Connect Web UI to broker via WebSocket
-7. **Step 7**: Add token-based authentication
-8. **Step 8**: Build minimal iOS client
+1. ✅ **Step 1**: Bootstrap project structure
+2. ✅ **Step 2**: Implement broker skeleton with basic HTTP endpoints
+3. ✅ **Step 3**: Add PTY wrapper to spawn Claude CLI
+4. ✅ **Step 4**: Add WebSocket support to broker
+5. ✅ **Step 5**: Implement pattern detection and y/n injection in adapter
+6. ✅ **Step 6**: Connect Web UI to broker via WebSocket
+7. ✅ **Step 7**: Add token-based authentication
+
+🚧 **In Progress:**
+
+- **Step 8**: Build minimal iOS client (SwiftUI scaffolding available, Xcode project setup required)
 
 ## Configuration
 
@@ -207,15 +259,29 @@ CI uses:
 
 ## Security
 
-**Current Status (Step 1 - Bootstrap):**
-- No authentication implemented yet
-- LAN-only deployment recommended
+**Current Implementation:**
 
-**Planned Security Features:**
-- Token-based authentication (Step 7)
-- Pairing code flow for initial setup
-- Bearer token required for sensitive endpoints
-- HTTPS/WSS support (post-MVP)
+- ✅ JWT token-based authentication
+- ✅ 6-digit pairing code flow (5-minute expiry, single-use)
+- ✅ Bearer token required for all mutation endpoints
+- ✅ WebSocket authentication via query parameter
+- ✅ Production mode: auto-generated codes disabled
+- ✅ Sanitized error logging (no token/secret exposure)
+
+**Security Best Practices:**
+
+- Run broker on localhost or trusted LAN only
+- Store tokens in environment variables (adapter) or localStorage (web-ui)
+- Never commit `.env` files or tokens to version control
+- Monitor broker logs for suspicious activity
+- Regenerate pairing codes regularly in production
+
+**Planned Enhancements (Post-MVP):**
+
+- HTTPS/WSS support with Let's Encrypt
+- Rate limiting on pairing endpoint
+- Token rotation and refresh mechanism
+- Audit logging for all permission decisions
 
 See [AGENTS.md](AGENTS.md#5-security-considerations) for detailed security documentation.
 
