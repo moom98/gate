@@ -1,5 +1,8 @@
 # Gate Adapter for Claude CLI
 
+**[English](README.md)** | 日本語
+
+
 PTY wrapper that intercepts Claude Code CLI permission prompts and sends them to the Gate broker for remote approval.
 
 ## How It Works
