@@ -147,7 +147,64 @@ pnpm typecheck    # TypeScript check
    # Verify: SIGINT (Ctrl+C) gracefully shuts down
    ```
 
-4. **End-to-End Permission Flow:**
+4. **Broker WebSocket Integration (Step 4):**
+   ```bash
+   # Test WebSocket connection
+   cd apps/broker
+   pnpm dev
+
+   # In another terminal, connect with wscat (install: npm i -g wscat)
+   wscat -c ws://localhost:3000/ws
+   # Expected: Connection established, receives initial message
+
+   # Test permission request with WebSocket broadcast
+   curl -X POST http://localhost:3000/v1/requests \
+     -H "Content-Type: application/json" \
+     -d '{
+       "id": "test-123",
+       "summary": "Test command",
+       "details": {
+         "cwd": "/tmp",
+         "command": "echo hello",
+         "rawPrompt": "Run echo hello?"
+       },
+       "timeoutSec": 60
+     }'
+   # Expected: WebSocket client receives permission_request message
+   # Expected: Request waits for decision (or times out after 60s)
+
+   # Send decision (in another terminal while request is waiting)
+   curl -X POST http://localhost:3000/v1/decisions \
+     -H "Content-Type: application/json" \
+     -d '{"id": "test-123", "decision": "allow"}'
+   # Expected: {"success":true}
+   # Expected: WebSocket client receives permission_resolved message
+   # Expected: Original /v1/requests call returns {"decision":"allow"}
+
+   # Test duplicate decision (409 Conflict)
+   curl -X POST http://localhost:3000/v1/decisions \
+     -H "Content-Type: application/json" \
+     -d '{"id": "test-123", "decision": "deny"}'
+   # Expected: HTTP 409, {"success":false}
+
+   # Test timeout (wait 60+ seconds without decision)
+   curl -X POST http://localhost:3000/v1/requests \
+     -H "Content-Type: application/json" \
+     -d '{
+       "id": "test-timeout",
+       "summary": "Timeout test",
+       "details": {
+         "cwd": "/tmp",
+         "command": "echo timeout",
+         "rawPrompt": "Test timeout?"
+       },
+       "timeoutSec": 5
+     }'
+   # Expected: After 5 seconds, returns {"decision":"deny"}
+   # Expected: WebSocket client receives permission_resolved with "deny"
+   ```
+
+5. **End-to-End Permission Flow:**
    - Start broker: `cd apps/broker && pnpm dev`
    - Start web-ui: `cd apps/web-ui && pnpm dev`
    - Start adapter: `cd apps/adapter-claude && pnpm dev`
@@ -155,23 +212,6 @@ pnpm typecheck    # TypeScript check
    - Verify request appears in Web UI
    - Click "Allow" or "Deny"
    - Verify PTY receives `y` or `n` input
-
-5. **WebSocket Connection:**
-   ```bash
-   # Using wscat or similar
-   wscat -c ws://localhost:3000/ws
-   # Expected: Connection established, receives permission_request messages
-   ```
-
-6. **Timeout Behavior:**
-   - Send permission request
-   - Wait 60+ seconds without decision
-   - Verify automatic "deny" response
-
-7. **First-Response-Wins:**
-   - Send permission request
-   - Submit decision from Web UI
-   - Attempt second decision
    - Verify 409 Conflict response
 
 **Automated Testing (Future):**
