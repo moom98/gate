@@ -134,7 +134,20 @@ pnpm typecheck    # TypeScript check
    # Expected: {"success":true}
    ```
 
-3. **End-to-End Permission Flow:**
+3. **Adapter PTY Manager (Step 3):**
+   ```bash
+   # Test adapter spawning Claude CLI
+   cd apps/adapter-claude
+   # Configure environment (optional if 'claude' is in PATH; otherwise set CLAUDE_COMMAND)
+   # export CLAUDE_COMMAND="echo"  # For testing without claude
+   # export CLAUDE_COMMAND="cat"   # Alternative test command
+   pnpm dev
+   # Expected: Adapter spawns CLI and logs output
+   # Verify: PTY output is visible
+   # Verify: SIGINT (Ctrl+C) gracefully shuts down
+   ```
+
+4. **End-to-End Permission Flow:**
    - Start broker: `cd apps/broker && pnpm dev`
    - Start web-ui: `cd apps/web-ui && pnpm dev`
    - Start adapter: `cd apps/adapter-claude && pnpm dev`
@@ -143,19 +156,19 @@ pnpm typecheck    # TypeScript check
    - Click "Allow" or "Deny"
    - Verify PTY receives `y` or `n` input
 
-4. **WebSocket Connection:**
+5. **WebSocket Connection:**
    ```bash
    # Using wscat or similar
    wscat -c ws://localhost:3000/ws
    # Expected: Connection established, receives permission_request messages
    ```
 
-5. **Timeout Behavior:**
+6. **Timeout Behavior:**
    - Send permission request
    - Wait 60+ seconds without decision
    - Verify automatic "deny" response
 
-6. **First-Response-Wins:**
+7. **First-Response-Wins:**
    - Send permission request
    - Submit decision from Web UI
    - Attempt second decision
