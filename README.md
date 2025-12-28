@@ -267,15 +267,17 @@ Add one of the following secrets to your repository:
 
 ```bash
 # Option 1 (Recommended): Claude Code OAuth Token
-# 1. Get the token from your local auth file:
+# 1. Get the access_token from your local auth file:
 cat ~/.config/claude-code/auth.json
-# Example output: {"access_token":"sk-ant-api03-...","refresh_token":"..."}
-# Copy the entire JSON object as the secret value
+# Example output: {"access_token":"sk-ant-api03-ABC123...","refresh_token":"..."}
 
-# 2. Add to GitHub:
+# 2. Copy ONLY the access_token value (the part after "access_token":")
+# For example, from the above output, copy: sk-ant-api03-ABC123...
+
+# 3. Add to GitHub:
 # Settings > Secrets and variables > Actions > New repository secret
 # Name: CLAUDE_CODE_OAUTH_TOKEN
-# Value: <paste the entire JSON object from step 1>
+# Value: sk-ant-api03-ABC123... (paste ONLY the access_token value, not the entire JSON)
 
 # Option 2 (Alternative): Anthropic API Key
 # Name: ANTHROPIC_API_KEY

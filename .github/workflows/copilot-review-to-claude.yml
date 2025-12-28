@@ -38,7 +38,7 @@ jobs:
           fi
           echo "PR Number: ${{ github.event.pull_request.number }}"
 
-      - name: Check for existing Claude handling marker
+      - name: Check if this specific review was already handled
         id: check_handled
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -46,17 +46,29 @@ jobs:
           # Get PR number
           PR_NUMBER="${{ github.event.pull_request.number }}"
 
-          # Check for marker comment from Claude
-          MARKER="[claude-copilot-handled]"
-          COMMENTS=$(gh api repos/${{ github.repository }}/issues/${PR_NUMBER}/comments \
-            --jq '.[] | select(.body | contains("'"$MARKER"'")) | .created_at' | head -1)
+          # Get timestamp of the triggering Copilot review
+          if [ "${{ github.event_name }}" = "pull_request_review" ]; then
+            COPILOT_REVIEW_TIME="${{ github.event.review.submitted_at }}"
+          elif [ "${{ github.event_name }}" = "pull_request_review_comment" ]; then
+            COPILOT_REVIEW_TIME="${{ github.event.comment.created_at }}"
+          fi
 
-          if [ -n "$COMMENTS" ]; then
-            echo "handled=true" >> $GITHUB_OUTPUT
-            echo "Claude has already handled Copilot review (marker found)"
-          else
+          echo "Copilot review timestamp: $COPILOT_REVIEW_TIME"
+
+          # Get timestamp of the most recent Claude handling marker
+          MARKER="[claude-copilot-handled]"
+          LATEST_CLAUDE_MARKER_TIME=$(gh api repos/${{ github.repository }}/issues/${PR_NUMBER}/comments \
+            --jq '.[] | select(.body | contains("'"$MARKER"'")) | .created_at' | sort -r | head -1)
+
+          if [ -z "$LATEST_CLAUDE_MARKER_TIME" ]; then
             echo "handled=false" >> $GITHUB_OUTPUT
             echo "No Claude handling marker found, proceeding..."
+          elif [[ "$COPILOT_REVIEW_TIME" > "$LATEST_CLAUDE_MARKER_TIME" ]]; then
+            echo "handled=false" >> $GITHUB_OUTPUT
+            echo "Copilot review is newer than latest Claude marker, proceeding..."
+          else
+            echo "handled=true" >> $GITHUB_OUTPUT
+            echo "Copilot review already handled (Claude marker is newer)"
           fi
 
       - name: Check retry limit
@@ -91,6 +103,21 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Enable Corepack
+        if: steps.check_handled.outputs.handled == 'false' && steps.check_retry.outputs.exceeded == 'false'
+        run: corepack enable
+
+      - name: Setup Node.js
+        if: steps.check_handled.outputs.handled == 'false' && steps.check_retry.outputs.exceeded == 'false'
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        if: steps.check_handled.outputs.handled == 'false' && steps.check_retry.outputs.exceeded == 'false'
+        run: pnpm install --frozen-lockfile
+
       - name: Collect Copilot review comments
         if: steps.check_handled.outputs.handled == 'false' && steps.check_retry.outputs.exceeded == 'false'
         id: collect_reviews
@@ -117,6 +144,7 @@ jobs:
           cat review_summary.md
 
       - name: Run Claude Code to fix review issues
+        id: run_claude
         if: steps.check_handled.outputs.handled == 'false' && steps.check_retry.outputs.exceeded == 'false'
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -143,12 +171,17 @@ $(cat review_summary.md)
 
 変更内容の要約を最後に出力してください。"
 
-          echo "$PROMPT" | claude --non-interactive --yes || {
-            echo "⚠️ Claude execution failed, but continuing..."
-          }
+          if echo "$PROMPT" | claude --non-interactive --yes; then
+            echo "success=true" >> $GITHUB_OUTPUT
+            echo "✓ Claude execution succeeded"
+          else
+            echo "success=false" >> $GITHUB_OUTPUT
+            echo "⚠️ Claude execution failed"
+            exit 1
+          fi
 
       - name: Post summary comment to PR
-        if: steps.check_handled.outputs.handled == 'false' && steps.check_retry.outputs.exceeded == 'false'
+        if: steps.check_handled.outputs.handled == 'false' && steps.check_retry.outputs.exceeded == 'false' && steps.run_claude.outputs.success == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
