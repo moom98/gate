@@ -74,33 +74,36 @@ export class PtyManager {
           console.log(
             `\n[Adapter] Permission prompt detected: ${detection.patternName}`
           );
+
+          // Set flag immediately to prevent race condition
           this.isProcessingPermission = true;
 
-          // Request permission from broker
-          try {
-            const decision = await this.brokerClient.requestPermission(
-              detection.patternName || "Permission request",
-              {
-                cwd: detection.cwd || config.cwd,
-                command: detection.command || "Unknown command",
-                rawPrompt: detection.rawPrompt,
-              }
-            );
+          // Request permission from broker (async operation)
+          (async () => {
+            try {
+              const decision = await this.brokerClient.requestPermission(
+                detection.patternName || "Permission request",
+                {
+                  cwd: detection.cwd || config.cwd,
+                  command: detection.command || "Unknown command",
+                  rawPrompt: detection.rawPrompt,
+                }
+              );
 
-            // Inject decision into PTY
-            const input = decision.decision === "allow" ? "y\n" : "n\n";
-            console.log(`[Adapter] Injecting decision: ${input.trim()}`);
-            this.write(input);
-
-            // Reset detector buffer after injection
-            this.detector.reset();
-          } catch (error) {
-            console.error("[Adapter] Error handling permission:", error);
-            // Default to deny on error
-            this.write("n\n");
-          } finally {
-            this.isProcessingPermission = false;
-          }
+              // Inject decision into PTY
+              const input = decision.decision === "allow" ? "y\n" : "n\n";
+              console.log(`[Adapter] Injecting decision: ${input.trim()}`);
+              this.write(input);
+            } catch (error) {
+              console.error("[Adapter] Error handling permission:", error);
+              // Default to deny on error
+              this.write("n\n");
+            } finally {
+              // Always reset buffer and flag
+              this.detector.reset();
+              this.isProcessingPermission = false;
+            }
+          })();
         }
       }
 
