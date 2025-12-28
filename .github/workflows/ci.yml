@@ -37,8 +37,3 @@ jobs:
 
       - name: Build
         run: pnpm -r build
-
-      - name: Copilot Code Review
-        uses: github/copilot-code-review-action@v1
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}

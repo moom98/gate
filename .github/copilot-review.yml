@@ -1,0 +1,28 @@
+# GitHub Copilot Code Review Configuration
+# Copilot will automatically review pull requests
+
+# Enable Copilot reviews for all PRs
+enabled: true
+
+# Review settings
+review:
+  # Automatically review when PR is opened or updated
+  auto_review: true
+
+  # Review all file types
+  file_patterns:
+    - "**/*.ts"
+    - "**/*.tsx"
+    - "**/*.js"
+    - "**/*.jsx"
+    - "**/*.json"
+    - "**/*.yml"
+    - "**/*.yaml"
+
+  # Focus areas for review
+  focus:
+    - security
+    - performance
+    - best_practices
+    - error_handling
+    - code_quality
