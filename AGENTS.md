@@ -155,7 +155,8 @@ pnpm typecheck    # TypeScript check
 
    # In another terminal, connect with wscat (install: npm i -g wscat)
    wscat -c ws://localhost:3000/ws
-   # Expected: Connection established, receives initial message
+   # Expected: Connection established
+   # Expected: Receives permission_resolved message with id "connection" and decision "allow"
 
    # Test permission request with WebSocket broadcast
    curl -X POST http://localhost:3000/v1/requests \

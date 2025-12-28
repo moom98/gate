@@ -40,9 +40,14 @@ export async function postRequests(
   const decisionPromise = pendingRequests.create(request);
   wsManager.broadcastRequest(request);
 
-  // Wait for decision (will timeout after timeoutSec)
-  const decision = await decisionPromise;
+  try {
+    // Wait for decision (will timeout after timeoutSec)
+    const decision = await decisionPromise;
 
-  // Return decision to adapter
-  res.json(decision);
+    // Return decision to adapter
+    res.json(decision);
+  } catch (error) {
+    console.error("[Broker] Error while waiting for permission decision:", error);
+    res.status(500).json({ decision: "deny" });
+  }
 }

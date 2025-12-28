@@ -48,6 +48,9 @@ app.use(
 
 // Start server
 const server = app.listen(PORT, () => {
+  // Initialize WebSocket server after HTTP server is listening
+  wsManager.init(server);
+
   console.log(`[Broker] Server running on http://localhost:${PORT}`);
   console.log(`[Broker] Health check: http://localhost:${PORT}/health`);
   console.log(`[Broker] WebSocket endpoint: ws://localhost:${PORT}/ws`);
@@ -62,6 +65,3 @@ server.on("error", (err: NodeJS.ErrnoException) => {
   }
   process.exit(1);
 });
-
-// Initialize WebSocket server
-wsManager.init(server);
