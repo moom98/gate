@@ -109,34 +109,57 @@ The web UI will be available at `http://localhost:3001`.
 
 The authentication token is stored in localStorage, so you won't need to pair again unless you clear browser data or logout.
 
-#### Terminal 3: Start Adapter (Optional)
+#### Terminal 3: Start Adapter
+
+**⚠️ IMPORTANT**: The adapter wraps the Claude CLI. Do NOT run the `claude` command separately when using the adapter.
+
+##### Quick Setup (Recommended)
+
+Run the automated setup script:
+
+```bash
+./scripts/setup-adapter.sh
+```
+
+This will build the adapter, update environment variables, and prompt for your BROKER_TOKEN.
+
+##### Manual Setup
+
 ```bash
 cd apps/adapter-claude
 
-# Create .env file with your token
-echo "BROKER_URL=http://localhost:3000" > .env
-echo "BROKER_TOKEN=<get-from-web-ui-or-pair-api>" >> .env
+# Build the adapter
+pnpm build
 
+# Configure environment variables
+# Edit .env.local to set BROKER_TOKEN (see apps/adapter-claude/README.md)
+
+# Start the adapter
 pnpm dev
 ```
-The adapter will spawn the Claude Code CLI and monitor for permission prompts.
 
-**Getting a token for the adapter:**
+**The adapter will spawn Claude CLI internally. Do NOT run `claude` command separately.**
 
-- Option 1: Pair via web UI, then check localStorage in browser DevTools
-- Option 2: Pair via API:
+**Getting BROKER_TOKEN:**
 
-  ```bash
-  # Generate code
-  curl -X POST http://localhost:3000/v1/pair/generate
+1. Pair Web UI with broker using the pairing code
+2. Open browser DevTools > Application > localStorage
+3. Copy the value of `token`
+4. Add to `apps/adapter-claude/.env.local` as `BROKER_TOKEN=...`
 
-  # Pair with code
-  curl -X POST http://localhost:3000/v1/pair \
-    -H "Content-Type: application/json" \
-    -d '{"code":"123456"}'
+Or use the setup script which automates this process.
 
-  # Copy the token from response and add to .env
-  ```
+**How to Use:**
+
+After starting the adapter with `pnpm dev`:
+
+1. The adapter spawns Claude CLI automatically
+2. Interact with Claude in the **same terminal where adapter is running**
+3. When Claude needs permission, the adapter intercepts it
+4. Approve/deny from Web UI or iOS app
+5. The decision is injected back into Claude automatically
+
+See [apps/adapter-claude/README.md](apps/adapter-claude/README.md) for detailed documentation.
 
 ## Development Commands
 

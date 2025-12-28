@@ -63,6 +63,11 @@ export class PtyManager {
 
     // Handle stdout/stderr data
     this.ptyProcess.onData(async (data: string) => {
+      // Debug mode: log all PTY output
+      if (process.env.DEBUG_MODE === "true") {
+        console.log(`[DEBUG] PTY output: ${JSON.stringify(data)}`);
+      }
+
       // Log output
       process.stdout.write(data);
 
