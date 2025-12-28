@@ -205,7 +205,33 @@ pnpm typecheck    # TypeScript check
    # Expected: WebSocket client receives permission_resolved with "deny"
    ```
 
-5. **End-to-End Permission Flow:**
+5. **Adapter Detection and Injection (Step 5):**
+   ```bash
+   # Test pattern detection with mock Claude CLI
+   cd apps/adapter-claude
+
+   # Option 1: Test with actual Claude CLI (if installed)
+   # Make sure BROKER_URL is set correctly
+   export BROKER_URL=http://localhost:3000
+   pnpm dev
+   # Interact with Claude to trigger permission prompt
+   # Expected: Adapter detects prompt, sends request to broker, injects y/n
+
+   # Option 2: Test with echo command (for pattern testing)
+   export CLAUDE_COMMAND="bash -c 'read -p \"Allow command execution? (y/n): \" answer && echo You answered: \$answer'"
+   pnpm dev
+   # Expected: Adapter detects (y/n) pattern
+   # Expected: Broker receives permission request
+   # Expected: After decision, 'y' or 'n' is injected
+
+   # Verify logs show:
+   # - "[Adapter] Permission prompt detected: <pattern_name>"
+   # - "[BrokerClient] Sending permission request: <id>"
+   # - "[BrokerClient] Received decision: allow/deny"
+   # - "[Adapter] Injecting decision: y/n"
+   ```
+
+6. **End-to-End Permission Flow:**
    - Start broker: `cd apps/broker && pnpm dev`
    - Start web-ui: `cd apps/web-ui && pnpm dev`
    - Start adapter: `cd apps/adapter-claude && pnpm dev`
@@ -213,9 +239,9 @@ pnpm typecheck    # TypeScript check
    - Verify request appears in Web UI
    - Click "Allow" or "Deny"
    - Verify PTY receives `y` or `n` input
-   - Verify 409 Conflict response
+   - Verify adapter continues operation
 
-6. **GitHub Actions自動化テスト:**
+7. **GitHub Actions自動化テスト:**
    ```bash
    # Copilot Review Auto-Handlerのテスト
 
