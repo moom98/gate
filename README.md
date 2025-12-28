@@ -1,5 +1,7 @@
 # Gate
 
+English | **[日本語](README.ja.md)**
+
 Claude Code Permission Gateway - Remotely manage command execution permission requests from Claude Code CLI.
 
 ## Overview

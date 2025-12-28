@@ -1,5 +1,8 @@
 # Gate iOS Client
 
+**[English](README.md)** | 日本語
+
+
 SwiftUI application for iOS to manage Claude Code permission requests remotely.
 
 ## Overview
