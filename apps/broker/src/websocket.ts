@@ -1,6 +1,9 @@
 import { WebSocketServer, WebSocket } from "ws";
 import { Server } from "http";
+import { IncomingMessage } from "http";
+import { parse } from "url";
 import { PermissionRequest } from "./types";
+import { AuthService } from "./auth";
 
 /**
  * WebSocket message types
@@ -18,12 +21,22 @@ export type WSMessage =
 class WebSocketManager {
   private wss: WebSocketServer | null = null;
   private clients = new Set<WebSocket>();
+  private authService: AuthService | null = null;
 
   /**
    * Initialize WebSocket server
    */
-  init(server: Server): void {
-    this.wss = new WebSocketServer({ server, path: "/ws" });
+  init(server: Server, authService: AuthService): void {
+    this.authService = authService;
+    this.wss = new WebSocketServer({
+      server,
+      path: "/ws",
+      verifyClient: (info: {
+        origin: string;
+        secure: boolean;
+        req: IncomingMessage;
+      }) => this.verifyClient(info),
+    });
 
     this.wss.on("connection", (ws: WebSocket) => {
       console.log("[Broker] WebSocket client connected");
@@ -106,6 +119,39 @@ class WebSocketManager {
    */
   getClientCount(): number {
     return this.clients.size;
+  }
+
+  /**
+   * Verify client authentication before WebSocket upgrade
+   */
+  private verifyClient(info: {
+    origin: string;
+    secure: boolean;
+    req: IncomingMessage;
+  }): boolean {
+    if (!this.authService) {
+      console.error("[Broker] AuthService not initialized");
+      return false;
+    }
+
+    const req = info.req;
+    const url = parse(req.url || "", true);
+    const token = url.query.token as string | undefined;
+
+    if (!token) {
+      console.log("[Broker] WebSocket connection rejected: missing token");
+      return false;
+    }
+
+    const payload = this.authService.verifyToken(token);
+
+    if (!payload) {
+      console.log("[Broker] WebSocket connection rejected: invalid token");
+      return false;
+    }
+
+    console.log(`[Broker] WebSocket client authenticated: ${payload.clientId}`);
+    return true;
   }
 }
 
