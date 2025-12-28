@@ -28,8 +28,8 @@ export const DEFAULT_PATTERNS: DetectionPattern[] = [
   },
   {
     name: "generic_permission",
-    // Generic fallback pattern
-    regex: /\(y\/n\)\s*$/i,
+    // Generic fallback pattern: require a question mark before (y/n) to reduce false positives
+    regex: /\?\s*\(y\/n\)\s*$/i,
     extractCommand: () => null,
   },
 ];
