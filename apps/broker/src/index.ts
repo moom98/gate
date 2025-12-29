@@ -14,7 +14,7 @@ import { requireAuth } from "./middleware/auth";
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3033;
 
 // Initialize auth services
 const authService = new AuthService(process.env.JWT_SECRET);

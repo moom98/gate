@@ -82,14 +82,14 @@ pnpm -r build
 cd apps/broker
 pnpm dev
 ```
-The broker will start on `http://localhost:3000` and display a 6-digit pairing code.
+The broker will start on `http://localhost:3033` and display a 6-digit pairing code.
 
 **Example output:**
 
 ```text
-[Broker] Server running on http://localhost:3000
-[Broker] Health check: http://localhost:3000/health
-[Broker] WebSocket endpoint: ws://localhost:3000/ws
+[Broker] Server running on http://localhost:3033
+[Broker] Health check: http://localhost:3033/health
+[Broker] WebSocket endpoint: ws://localhost:3033/ws
 
 ┌─────────────────────────────────────────┐
 │         PAIRING CODE                    │
@@ -276,11 +276,11 @@ gate/
 Configuration will be handled via environment variables:
 
 **Broker** (`apps/broker/.env`):
-- `PORT` - HTTP server port (default: 3000)
+- `PORT` - HTTP server port (default: 3033)
 - `WS_PATH` - WebSocket endpoint path (default: /ws)
 
 **Adapter** (`apps/adapter-claude/.env`):
-- `BROKER_URL` - Broker HTTP URL (default: http://localhost:3000)
+- `BROKER_URL` - Broker HTTP URL (default: http://localhost:3033)
 - `BROKER_TOKEN` - Authentication token (required after step 7)
 - `CLAUDE_COMMAND` - Claude CLI command (default: claude)
 
