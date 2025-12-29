@@ -9,12 +9,6 @@ const BROKER_URL = process.env.GATE_BROKER_URL || 'http://localhost:3033';
 const BROKER_TOKEN = process.env.GATE_BROKER_TOKEN;
 const TIMEOUT_MS = 60000; // 60 seconds
 
-if (!BROKER_TOKEN) {
-  console.error('[Hook] ERROR: GATE_BROKER_TOKEN not set');
-  console.error('[Hook] Please set the GATE_BROKER_TOKEN environment variable');
-  process.exit(1);
-}
-
 // Read stdin
 let inputData = '';
 process.stdin.on('data', (chunk) => { inputData += chunk; });
@@ -22,6 +16,24 @@ process.stdin.on('data', (chunk) => { inputData += chunk; });
 process.stdin.on('end', async () => {
   try {
     const payload = JSON.parse(inputData);
+
+    // Check if GATE_BROKER_TOKEN is configured
+    if (!BROKER_TOKEN) {
+      console.error('[Hook] ERROR: GATE_BROKER_TOKEN not set');
+      console.error('[Hook] Please configure GATE_BROKER_TOKEN in .claude/settings.json');
+      console.error('[Hook] See README.md for setup instructions');
+      // Fail closed - deny all operations when token is not configured
+      const output = {
+        hookSpecificOutput: {
+          hookEventName: 'PreToolUse',
+          permissionDecision: 'deny',
+          permissionDecisionReason: 'GATE_BROKER_TOKEN not configured. See README.md for setup instructions.'
+        }
+      };
+      console.log(JSON.stringify(output));
+      process.exit(0);
+      return;
+    }
 
     console.error(`[Hook] Tool: ${payload.tool_name}`);
     console.error(`[Hook] CWD: ${payload.cwd}`);
