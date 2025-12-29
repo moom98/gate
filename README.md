@@ -26,7 +26,7 @@ Gate intercepts permission prompts from the Claude Code CLI and allows you to ap
          │ HTTP POST /v1/requests
          ▼
 ┌─────────────────┐      WebSocket      ┌─────────────────┐
-│  Broker (3033)  │ ◄─────────────────► │  Web UI (3001)  │
+│  Broker (3000)  │ ◄─────────────────► │  Web UI (3001)  │
 └─────────────────┘                     └─────────────────┘
          ▲
          │ POST /v1/decisions
@@ -227,12 +227,7 @@ gate/
 ├── apps/
 │   ├── broker/              # HTTP + WebSocket server
 │   │   ├── src/
-│   │   │   └── index.ts     # Entry point (placeholder)
-│   │   ├── package.json
-│   │   └── tsconfig.json
-│   ├── adapter-claude/      # PTY wrapper for Claude CLI
-│   │   ├── src/
-│   │   │   └── index.ts     # Entry point (placeholder)
+│   │   │   └── index.ts     # Entry point
 │   │   ├── package.json
 │   │   └── tsconfig.json
 │   ├── web-ui/              # Next.js dashboard
@@ -242,8 +237,17 @@ gate/
 │   │   │   └── lib/         # Utilities
 │   │   ├── package.json
 │   │   └── next.config.js
-│   └── ios-client/          # SwiftUI iOS app (planned)
-│       └── README.md
+│   ├── ios-client/          # SwiftUI iOS app (planned)
+│   │   └── README.md
+│   └── adapter-claude-legacy/  # DEPRECATED PTY wrapper (legacy)
+│       ├── src/
+│       │   └── index.ts
+│       ├── package.json
+│       └── tsconfig.json
+├── .claude/
+│   ├── hooks/
+│   │   └── pretooluse-gate.js  # Claude Code PreToolUse hook
+│   └── settings.json.example   # Hook configuration template
 ├── .github/
 │   └── workflows/
 │       └── ci.yml           # GitHub Actions CI
