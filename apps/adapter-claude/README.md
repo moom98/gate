@@ -2,7 +2,6 @@
 
 **[English](README.md)** | 日本語
 
-
 PTY wrapper that intercepts Claude Code CLI permission prompts and sends them to the Gate broker for remote approval.
 
 ## How It Works
@@ -33,6 +32,7 @@ Run the setup script from the repository root:
 ```
 
 This will:
+
 - Build the adapter
 - Check broker connectivity
 - Update BROKER_URL to match broker's PORT
@@ -60,7 +60,7 @@ Edit `.env.local`:
 
 ```bash
 # Broker HTTP URL (must match broker's PORT)
-BROKER_URL=http://localhost:3033
+BROKER_URL=http://localhost:3000
 
 # Broker authentication token (REQUIRED after Step 7)
 # Get this from Web UI after pairing
@@ -91,6 +91,7 @@ pnpm dev
 ```
 
 The adapter will:
+
 - Spawn `claude` CLI in a PTY
 - Monitor output for permission prompts
 - Send detected prompts to broker
@@ -111,6 +112,7 @@ Once the adapter is running, all Claude Code permission prompts will be intercep
 When the adapter is running, do **NOT** execute the `claude` command separately. The adapter has already spawned Claude CLI internally.
 
 ✅ **Correct usage**:
+
 ```bash
 # Terminal 1: Start adapter
 cd apps/adapter-claude
@@ -121,6 +123,7 @@ pnpm dev
 ```
 
 ❌ **Incorrect usage**:
+
 ```bash
 # Terminal 1: Start adapter
 cd apps/adapter-claude
@@ -147,15 +150,18 @@ After starting the adapter with `pnpm dev`:
 ### Problem: No logs from adapter
 
 **Symptoms**:
+
 - No `[Adapter]` logs appear
 - Claude doesn't seem to connect to broker
 
 **Possible Causes**:
+
 1. Adapter not running
 2. Running `claude` directly instead of through adapter
 3. Environment variables not loaded
 
 **Solution**:
+
 1. Make sure adapter is running: `cd apps/adapter-claude && pnpm dev`
 2. Check that you see `[Adapter] Starting Gate Adapter for Claude CLI`
 3. Do NOT run `claude` command separately
@@ -164,15 +170,18 @@ After starting the adapter with `pnpm dev`:
 ### Problem: "401 Unauthorized" errors
 
 **Symptoms**:
+
 - Adapter logs show authentication errors
 - Requests to broker fail with 401
 
 **Possible Causes**:
+
 1. Missing `BROKER_TOKEN` in `.env.local`
 2. Invalid or expired token
 3. Token from different broker instance
 
 **Solution**:
+
 1. Check that broker is running
 2. Pair Web UI with broker using pairing code
 3. Get fresh token from browser localStorage
@@ -182,15 +191,18 @@ After starting the adapter with `pnpm dev`:
 ### Problem: "Connection refused" to broker
 
 **Symptoms**:
+
 - Cannot connect to broker
 - `ECONNREFUSED` errors in logs
 
 **Possible Causes**:
+
 1. Broker not running
 2. Wrong `BROKER_URL` in `.env.local`
 3. Port number mismatch
 
 **Solution**:
+
 1. Start broker: `cd apps/broker && pnpm dev`
 2. Check broker's PORT in `apps/broker/.env.local`
 3. Update `BROKER_URL` in `apps/adapter-claude/.env.local` to match
@@ -200,16 +212,19 @@ After starting the adapter with `pnpm dev`:
 ### Problem: Permission prompts not detected
 
 **Symptoms**:
+
 - Claude shows permission prompts
 - But they don't appear in Web UI
 - No `[Adapter] Permission prompt detected` logs
 
 **Possible Causes**:
+
 1. Pattern regex doesn't match Claude Code output
 2. ANSI color codes interfering with detection
 3. Multi-line prompts not being captured
 
 **Solution**:
+
 1. Enable debug mode: `DEBUG_MODE=true pnpm dev`
 2. Check logs for PTY output
 3. Look for lines containing `(y/n)`
@@ -219,16 +234,19 @@ After starting the adapter with `pnpm dev`:
 ### Problem: Web UI not receiving notifications
 
 **Symptoms**:
+
 - Adapter detects prompt: `[Adapter] Permission prompt detected`
 - Broker receives request
 - But Web UI shows no notification
 
 **Possible Causes**:
+
 1. Web UI not connected to broker
 2. WebSocket disconnected
 3. Browser tab in background (notifications disabled)
 
 **Solution**:
+
 1. Check Web UI shows "Connected" (green)
 2. Refresh Web UI page
 3. Check browser console for WebSocket errors
@@ -243,6 +261,7 @@ DEBUG_MODE=true pnpm dev
 ```
 
 This will log:
+
 - All PTY output from Claude CLI
 - Pattern matching attempts
 - Broker communication details
@@ -267,6 +286,7 @@ pnpm clean
 ## Architecture
 
 **Key files**:
+
 - [src/index.ts](src/index.ts) - Entry point, initializes PTY manager
 - [src/pty-manager.ts](src/pty-manager.ts) - Spawns Claude CLI, handles I/O
 - [src/detection.ts](src/detection.ts) - Pattern matching for permission prompts
@@ -274,6 +294,7 @@ pnpm clean
 - [src/config.ts](src/config.ts) - Configuration loading
 
 **Flow**:
+
 1. index.ts loads config and creates PtyManager
 2. PtyManager spawns `claude` command in PTY
 3. PTY stdout is monitored by PatternDetector
@@ -292,7 +313,7 @@ $ pnpm dev
 
 [Adapter] Starting Gate Adapter for Claude CLI
 [Adapter] Configuration loaded:
-  Broker URL: http://localhost:3033
+  Broker URL: http://localhost:3000
   Claude Command: claude
   Working Directory: /Users/you/project
 [Adapter] Spawning Claude CLI: claude

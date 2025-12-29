@@ -1,6 +1,8 @@
 import dotenv from "dotenv";
+import path from "path";
 
-// Load environment variables
+// Load environment variables from .env.local first, then .env
+dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
 dotenv.config();
 
 export interface AdapterConfig {

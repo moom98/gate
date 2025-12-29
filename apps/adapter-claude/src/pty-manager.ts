@@ -40,12 +40,20 @@ export class PtyManager {
 
     // Spawn PTY process with error handling
     try {
+      // Prepare environment variables - ensure all values are strings
+      const env: { [key: string]: string } = {};
+      for (const [key, value] of Object.entries(process.env)) {
+        if (value !== undefined) {
+          env[key] = String(value);
+        }
+      }
+
       this.ptyProcess = pty.spawn(config.claudeCommand, [], {
         name: "xterm-color",
         cols: 80,
         rows: 30,
         cwd: config.cwd,
-        env: process.env as { [key: string]: string },
+        env,
       });
     } catch (error) {
       console.error("[Adapter] Failed to spawn Claude CLI PTY process");

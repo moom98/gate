@@ -13,6 +13,8 @@ export default function PairPage() {
   const [code, setCode] = useState("");
   const [isPairing, setIsPairing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isCheckingConnection, setIsCheckingConnection] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<string | null>(null);
 
   const handlePair = async () => {
     if (!code || code.length !== 6) {
@@ -23,14 +25,27 @@ export default function PairPage() {
     setIsPairing(true);
     setError(null);
 
+    console.log("[Pair] Starting pairing request to:", `${BROKER_URL}/v1/pair`);
+    console.log("[Pair] Code length:", code.length);
+
     try {
+      // Add timeout to fetch request
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
       const response = await fetch(`${BROKER_URL}/v1/pair`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ code }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
+
+      console.log("[Pair] Response status:", response.status);
+      console.log("[Pair] Response headers:", Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
         if (response.status === 401) {
@@ -40,6 +55,7 @@ export default function PairPage() {
       }
 
       const data = await response.json();
+      console.log("[Pair] Response data:", data);
 
       if (!data.success || !data.token || !data.clientId) {
         throw new Error("Invalid response from server");
@@ -53,9 +69,25 @@ export default function PairPage() {
       // Redirect to home page
       router.push("/");
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Unknown error";
+      let errorMessage = "Unknown error";
+
+      if (err instanceof Error) {
+        if (err.name === "AbortError") {
+          errorMessage = `Request timed out. Please check if broker is running at ${BROKER_URL}`;
+        } else if (err.message.includes("fetch")) {
+          errorMessage = `Cannot connect to broker at ${BROKER_URL}. Please verify:\n1. Broker is running (cd apps/broker && pnpm dev)\n2. Broker URL is correct\n3. No firewall blocking the connection`;
+        } else {
+          errorMessage = err.message;
+        }
+      }
+
       setError(errorMessage);
       console.error("[Pair] Failed to pair:", err);
+      console.error("[Pair] Error details:", {
+        name: err instanceof Error ? err.name : "unknown",
+        message: err instanceof Error ? err.message : String(err),
+        brokerUrl: BROKER_URL,
+      });
     } finally {
       setIsPairing(false);
     }
@@ -69,6 +101,41 @@ export default function PairPage() {
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       handlePair();
+    }
+  };
+
+  const checkBrokerConnection = async () => {
+    setIsCheckingConnection(true);
+    setConnectionStatus(null);
+
+    try {
+      console.log("[Pair] Checking broker connection at:", `${BROKER_URL}/health`);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
+      const response = await fetch(`${BROKER_URL}/health`, {
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const data = await response.json();
+        setConnectionStatus(`✅ Broker is reachable (${data.status || "ok"})`);
+        console.log("[Pair] Broker health check success:", data);
+      } else {
+        setConnectionStatus(`⚠️ Broker responded with status ${response.status}`);
+      }
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
+        setConnectionStatus(`❌ Connection timeout - broker may not be running at ${BROKER_URL}`);
+      } else {
+        setConnectionStatus(`❌ Cannot connect to broker at ${BROKER_URL}`);
+      }
+      console.error("[Pair] Broker health check failed:", err);
+    } finally {
+      setIsCheckingConnection(false);
     }
   };
 
@@ -88,6 +155,9 @@ export default function PairPage() {
             <CardDescription>
               Enter the 6-digit code displayed in the broker console
             </CardDescription>
+            <div className="text-xs text-muted-foreground pt-2">
+              Broker URL: <code className="bg-gray-100 px-1 py-0.5 rounded">{BROKER_URL}</code>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -106,8 +176,14 @@ export default function PairPage() {
             </div>
 
             {error && (
-              <div className="text-sm text-red-500 bg-red-50 p-3 rounded">
+              <div className="text-sm text-red-500 bg-red-50 p-3 rounded whitespace-pre-line">
                 {error}
+              </div>
+            )}
+
+            {connectionStatus && (
+              <div className="text-sm p-3 rounded bg-gray-50 border border-gray-200">
+                {connectionStatus}
               </div>
             )}
 
@@ -117,6 +193,15 @@ export default function PairPage() {
               className="w-full"
             >
               {isPairing ? "Pairing..." : "Pair Device"}
+            </Button>
+
+            <Button
+              onClick={checkBrokerConnection}
+              disabled={isCheckingConnection}
+              variant="outline"
+              className="w-full"
+            >
+              {isCheckingConnection ? "Checking..." : "Test Broker Connection"}
             </Button>
 
             <div className="text-xs text-muted-foreground text-center pt-2">
