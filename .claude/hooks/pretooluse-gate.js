@@ -17,6 +17,63 @@ process.stdin.on('end', async () => {
   try {
     const payload = JSON.parse(inputData);
 
+    // Validate payload structure
+    if (!payload || typeof payload !== 'object') {
+      console.error('[Hook] ERROR: Invalid payload - not an object');
+      const output = {
+        hookSpecificOutput: {
+          hookEventName: 'PreToolUse',
+          permissionDecision: 'deny',
+          permissionDecisionReason: 'Invalid payload structure'
+        }
+      };
+      console.log(JSON.stringify(output));
+      process.exit(0);
+      return;
+    }
+
+    if (!payload.tool_name || typeof payload.tool_name !== 'string') {
+      console.error('[Hook] ERROR: Missing or invalid tool_name');
+      const output = {
+        hookSpecificOutput: {
+          hookEventName: 'PreToolUse',
+          permissionDecision: 'deny',
+          permissionDecisionReason: 'Missing or invalid tool_name'
+        }
+      };
+      console.log(JSON.stringify(output));
+      process.exit(0);
+      return;
+    }
+
+    if (!payload.cwd || typeof payload.cwd !== 'string') {
+      console.error('[Hook] ERROR: Missing or invalid cwd');
+      const output = {
+        hookSpecificOutput: {
+          hookEventName: 'PreToolUse',
+          permissionDecision: 'deny',
+          permissionDecisionReason: 'Missing or invalid cwd'
+        }
+      };
+      console.log(JSON.stringify(output));
+      process.exit(0);
+      return;
+    }
+
+    if (!payload.tool_input || typeof payload.tool_input !== 'object') {
+      console.error('[Hook] ERROR: Missing or invalid tool_input');
+      const output = {
+        hookSpecificOutput: {
+          hookEventName: 'PreToolUse',
+          permissionDecision: 'deny',
+          permissionDecisionReason: 'Missing or invalid tool_input'
+        }
+      };
+      console.log(JSON.stringify(output));
+      process.exit(0);
+      return;
+    }
+
     // Check if GATE_BROKER_TOKEN is configured
     if (!BROKER_TOKEN) {
       console.error('[Hook] ERROR: GATE_BROKER_TOKEN not set');
