@@ -9,13 +9,13 @@ cd apps/broker
 pnpm dev
 ```
 
-The broker will start on `http://localhost:3033` and display a 6-digit pairing code.
+The broker will start on `http://localhost:3000` and display a 6-digit pairing code.
 
 ## Configuration
 
 Environment variables (`.env.local`):
 
-- `PORT` - HTTP server port (default: 3033)
+- `PORT` - HTTP server port (default: 3000)
 - `WS_PATH` - WebSocket endpoint path (default: /ws)
 - `JWT_SECRET` - Secret for signing JWT tokens (auto-generated if not set)
 - `NODE_ENV` - Environment mode (development/production)
@@ -24,7 +24,7 @@ Environment variables (`.env.local`):
 
 ### Prerequisites
 
-1. Broker running on port 3033
+1. Broker running on port 3000
 2. Web UI running on port 3001
 3. Paired and obtained authentication token
 
@@ -42,6 +42,7 @@ Environment variables (`.env.local`):
 
    ```bash
    cp .claude/settings.json.example .claude/settings.json
+   chmod +x .claude/hooks/pretooluse-gate.js
    ```
 
    Edit `.claude/settings.json`:
@@ -58,7 +59,7 @@ Environment variables (`.env.local`):
                "command": "/absolute/path/to/gate/.claude/hooks/pretooluse-gate.js",
                "timeout": 65000,
                "env": {
-                 "GATE_BROKER_URL": "http://localhost:3033",
+                 "GATE_BROKER_URL": "http://localhost:3000",
                  "GATE_BROKER_TOKEN": "your-token-here"
                }
              }
@@ -66,15 +67,45 @@ Environment variables (`.env.local`):
          },
          {
            "matcher": "Edit",
-           "hooks": [{ /* same config */ }]
+           "hooks": [
+             {
+               "type": "command",
+               "command": "/absolute/path/to/gate/.claude/hooks/pretooluse-gate.js",
+               "timeout": 65000,
+               "env": {
+                 "GATE_BROKER_URL": "http://localhost:3000",
+                 "GATE_BROKER_TOKEN": "your-token-here"
+               }
+             }
+           ]
          },
          {
            "matcher": "Write",
-           "hooks": [{ /* same config */ }]
+           "hooks": [
+             {
+               "type": "command",
+               "command": "/absolute/path/to/gate/.claude/hooks/pretooluse-gate.js",
+               "timeout": 65000,
+               "env": {
+                 "GATE_BROKER_URL": "http://localhost:3000",
+                 "GATE_BROKER_TOKEN": "your-token-here"
+               }
+             }
+           ]
          },
          {
            "matcher": "NotebookEdit",
-           "hooks": [{ /* same config */ }]
+           "hooks": [
+             {
+               "type": "command",
+               "command": "/absolute/path/to/gate/.claude/hooks/pretooluse-gate.js",
+               "timeout": 65000,
+               "env": {
+                 "GATE_BROKER_URL": "http://localhost:3000",
+                 "GATE_BROKER_TOKEN": "your-token-here"
+               }
+             }
+           ]
          }
        ]
      }
@@ -145,7 +176,7 @@ Respond to a pending permission request.
 
 ```json
 {
-  "requestId": "uuid-v4",
+  "id": "uuid-v4",
   "decision": "allow"
 }
 ```
@@ -160,7 +191,7 @@ Respond to a pending permission request.
 
 **Authentication:** Bearer token required.
 
-### POST `/v1/pairing`
+### POST `/v1/pair`
 
 Pair a new client using a 6-digit code.
 
@@ -176,6 +207,7 @@ Pair a new client using a 6-digit code.
 
 ```json
 {
+  "success": true,
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "clientId": "uuid-v4"
 }
@@ -192,13 +224,14 @@ Health check endpoint.
 ```json
 {
   "status": "ok",
-  "timestamp": "2025-01-01T00:00:00.000Z"
+  "timestamp": "2025-01-01T00:00:00.000Z",
+  "version": "0.0.1"
 }
 ```
 
 ## WebSocket
 
-Connect to `ws://localhost:3033/ws?token=your-jwt-token`
+Connect to `ws://localhost:3000/ws?token=your-jwt-token`
 
 **Authentication:** Token required in query parameter.
 

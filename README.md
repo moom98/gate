@@ -82,14 +82,14 @@ pnpm -r build
 cd apps/broker
 pnpm dev
 ```
-The broker will start on `http://localhost:3033` and display a 6-digit pairing code.
+The broker will start on `http://localhost:3000` and display a 6-digit pairing code.
 
 **Example output:**
 
 ```text
-[Broker] Server running on http://localhost:3033
-[Broker] Health check: http://localhost:3033/health
-[Broker] WebSocket endpoint: ws://localhost:3033/ws
+[Broker] Server running on http://localhost:3000
+[Broker] Health check: http://localhost:3000/health
+[Broker] WebSocket endpoint: ws://localhost:3000/ws
 
 ┌─────────────────────────────────────────┐
 │         PAIRING CODE                    │
@@ -128,10 +128,11 @@ The authentication token is stored in localStorage, so you won't need to pair ag
 
 **Setup hooks:**
 
-1. Copy the template:
+1. Copy the template and make the hook script executable:
 
    ```bash
    cp .claude/settings.json.example .claude/settings.json
+   chmod +x .claude/hooks/pretooluse-gate.js
    ```
 
 2. Edit `.claude/settings.json`:
@@ -152,7 +153,7 @@ The authentication token is stored in localStorage, so you won't need to pair ag
                "command": "/Users/yourname/gate/.claude/hooks/pretooluse-gate.js",
                "timeout": 65000,
                "env": {
-                 "GATE_BROKER_URL": "http://localhost:3033",
+                 "GATE_BROKER_URL": "http://localhost:3000",
                  "GATE_BROKER_TOKEN": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                }
              }
@@ -205,7 +206,7 @@ pnpm dev               # Start with tsx watch
 pnpm build             # Build TypeScript
 pnpm typecheck         # Type-check only
 
-# Adapter
+# Adapter (DEPRECATED - Use Claude Code Hooks instead)
 cd apps/adapter-claude
 pnpm dev               # Start with tsx watch
 pnpm build             # Build TypeScript
@@ -276,11 +277,11 @@ gate/
 Configuration will be handled via environment variables:
 
 **Broker** (`apps/broker/.env`):
-- `PORT` - HTTP server port (default: 3033)
+- `PORT` - HTTP server port (default: 3000)
 - `WS_PATH` - WebSocket endpoint path (default: /ws)
 
-**Adapter** (`apps/adapter-claude/.env`):
-- `BROKER_URL` - Broker HTTP URL (default: http://localhost:3033)
+**Adapter (DEPRECATED)** (`apps/adapter-claude/.env`):
+- `BROKER_URL` - Broker HTTP URL (default: http://localhost:3000)
 - `BROKER_TOKEN` - Authentication token (required after step 7)
 - `CLAUDE_COMMAND` - Claude CLI command (default: claude)
 

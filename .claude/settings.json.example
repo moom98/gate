@@ -9,7 +9,7 @@
             "command": "/absolute/path/to/gate/.claude/hooks/pretooluse-gate.js",
             "timeout": 65000,
             "env": {
-              "GATE_BROKER_URL": "http://localhost:3033",
+              "GATE_BROKER_URL": "http://localhost:3000",
               "GATE_BROKER_TOKEN": "{{REPLACE_WITH_YOUR_TOKEN}}"
             }
           }
@@ -23,7 +23,7 @@
             "command": "/absolute/path/to/gate/.claude/hooks/pretooluse-gate.js",
             "timeout": 65000,
             "env": {
-              "GATE_BROKER_URL": "http://localhost:3033",
+              "GATE_BROKER_URL": "http://localhost:3000",
               "GATE_BROKER_TOKEN": "{{REPLACE_WITH_YOUR_TOKEN}}"
             }
           }
@@ -37,7 +37,7 @@
             "command": "/absolute/path/to/gate/.claude/hooks/pretooluse-gate.js",
             "timeout": 65000,
             "env": {
-              "GATE_BROKER_URL": "http://localhost:3033",
+              "GATE_BROKER_URL": "http://localhost:3000",
               "GATE_BROKER_TOKEN": "{{REPLACE_WITH_YOUR_TOKEN}}"
             }
           }
@@ -51,7 +51,7 @@
             "command": "/absolute/path/to/gate/.claude/hooks/pretooluse-gate.js",
             "timeout": 65000,
             "env": {
-              "GATE_BROKER_URL": "http://localhost:3033",
+              "GATE_BROKER_URL": "http://localhost:3000",
               "GATE_BROKER_TOKEN": "{{REPLACE_WITH_YOUR_TOKEN}}"
             }
           }

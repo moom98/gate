@@ -5,7 +5,7 @@ const http = require('http');
 const { randomUUID } = require('crypto');
 
 // Configuration from environment
-const BROKER_URL = process.env.GATE_BROKER_URL || 'http://localhost:3033';
+const BROKER_URL = process.env.GATE_BROKER_URL || 'http://localhost:3000';
 const BROKER_TOKEN = process.env.GATE_BROKER_TOKEN;
 const TIMEOUT_MS = 60000; // 60 seconds
 
