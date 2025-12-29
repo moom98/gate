@@ -15,23 +15,30 @@ Gate intercepts permission prompts from the Claude Code CLI and allows you to ap
 ```
 ┌─────────────────┐
 │  Claude Code    │
-│      CLI        │
+│  (with Hooks)   │
 └────────┬────────┘
-         │ (PTY)
+         │ PreToolUse event
          ▼
-┌─────────────────┐      HTTP/WS      ┌─────────────────┐
-│  Adapter        ├──────────────────►│     Broker      │
-│  (node-pty)     │◄──────────────────┤  (HTTP + WS)    │
-└─────────────────┘                   └────────┬────────┘
-                                               │
-                                ┌──────────────┴───────────────┐
-                                │                              │
-                                ▼                              ▼
-                        ┌───────────────┐            ┌────────────────┐
-                        │   Web UI      │            │   iOS App      │
-                        │  (Next.js)    │            │  (SwiftUI)     │
-                        └───────────────┘            └────────────────┘
+┌─────────────────┐
+│  Hook Script    │
+│  (.claude/hooks)│
+└────────┬────────┘
+         │ HTTP POST /v1/requests
+         ▼
+┌─────────────────┐      WebSocket      ┌─────────────────┐
+│  Broker (3033)  │ ◄─────────────────► │  Web UI (3001)  │
+└─────────────────┘                     └─────────────────┘
+         ▲
+         │ POST /v1/decisions
+         │
+    ┌────┴────┐
+    │  User   │
+    │ (allow/ │
+    │  deny)  │
+    └─────────┘
 ```
+
+**Note:** No adapter needed! Hooks integrate directly with Claude CLI.
 
 ## Technology Stack
 
@@ -39,7 +46,7 @@ Gate intercepts permission prompts from the Claude Code CLI and allows you to ap
 - **Runtime**: Node.js 20 LTS
 - **Language**: TypeScript
 - **Broker**: HTTP + WebSocket server
-- **Adapter**: node-pty (PTY wrapper)
+- **Hook Integration**: Claude Code PreToolUse hooks (Node.js script)
 - **Web UI**: Next.js (App Router) + shadcn/ui + Tailwind CSS
 - **iOS Client**: SwiftUI + URLSessionWebSocketTask
 - **CI/CD**: GitHub Actions
@@ -111,57 +118,71 @@ The web UI will be available at `http://localhost:3001`.
 
 The authentication token is stored in localStorage, so you won't need to pair again unless you clear browser data or logout.
 
-#### Terminal 3: Start Adapter
+### 4. Configure Claude Code Hooks
 
-**⚠️ IMPORTANT**: The adapter wraps the Claude CLI. Do NOT run the `claude` command separately when using the adapter.
+**Getting your authentication token:**
 
-##### Quick Setup (Recommended)
-
-Run the automated setup script:
-
-```bash
-./scripts/setup-adapter.sh
-```
-
-This will build the adapter, update environment variables, and prompt for your BROKER_TOKEN.
-
-##### Manual Setup
-
-```bash
-cd apps/adapter-claude
-
-# Build the adapter
-pnpm build
-
-# Configure environment variables
-# Edit .env.local to set BROKER_TOKEN (see apps/adapter-claude/README.md)
-
-# Start the adapter
-pnpm dev
-```
-
-**The adapter will spawn Claude CLI internally. Do NOT run `claude` command separately.**
-
-**Getting BROKER_TOKEN:**
-
-1. Pair Web UI with broker using the pairing code
-2. Open browser DevTools > Application > localStorage
+1. After pairing Web UI (step 3), open browser DevTools (F12)
+2. Go to Application > localStorage
 3. Copy the value of `token`
-4. Add to `apps/adapter-claude/.env.local` as `BROKER_TOKEN=...`
 
-Or use the setup script which automates this process.
+**Setup hooks:**
+
+1. Copy the template:
+
+   ```bash
+   cp .claude/settings.json.example .claude/settings.json
+   ```
+
+2. Edit `.claude/settings.json`:
+   - Replace `/absolute/path/to/gate/` with the actual path to your Gate project
+   - Replace `{{REPLACE_WITH_YOUR_TOKEN}}` with the token from localStorage
+
+   Example:
+
+   ```json
+   {
+     "hooks": {
+       "PreToolUse": [
+         {
+           "matcher": "Bash",
+           "hooks": [
+             {
+               "type": "command",
+               "command": "/Users/yourname/gate/.claude/hooks/pretooluse-gate.js",
+               "timeout": 65000,
+               "env": {
+                 "GATE_BROKER_URL": "http://localhost:3033",
+                 "GATE_BROKER_TOKEN": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+               }
+             }
+           ]
+         }
+       ]
+     }
+   }
+   ```
+
+3. The hook script will now intercept Bash, Edit, Write, and NotebookEdit tools
+4. All other tools (Read, Grep, etc.) will execute without approval
 
 **How to Use:**
 
-After starting the adapter with `pnpm dev`:
+1. Start Claude CLI in any project directory:
 
-1. The adapter spawns Claude CLI automatically
-2. Interact with Claude in the **same terminal where adapter is running**
-3. When Claude needs permission, the adapter intercepts it
-4. Approve/deny from Web UI or iOS app
-5. The decision is injected back into Claude automatically
+   ```bash
+   claude
+   ```
 
-See [apps/adapter-claude/README.md](apps/adapter-claude/README.md) for detailed documentation.
+2. When Claude tries to execute an intercepted tool (Bash, Edit, Write, NotebookEdit):
+   - The hook sends a permission request to the Broker
+   - You'll see a notification in Web UI or iOS app
+   - Approve or deny the request
+   - Claude receives the decision and proceeds accordingly
+
+3. Non-intercepted tools (Read, Grep, Glob, etc.) execute immediately without approval
+
+**Note:** No adapter needed! Hooks integrate directly with Claude CLI.
 
 ## Development Commands
 
