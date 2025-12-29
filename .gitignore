@@ -26,6 +26,9 @@ lerna-debug.log*
 .env.test.local
 .env.production.local
 
+# Claude Code settings (contains tokens)
+.claude/settings.json
+
 # Testing
 coverage/
 .nyc_output
