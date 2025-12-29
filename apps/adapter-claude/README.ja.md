@@ -32,6 +32,7 @@ Claude Code CLIのパーミッションプロンプトをインターセプト�
 ```
 
 このスクリプトは以下を実行します:
+
 - Adapterのビルド
 - Brokerへの接続確認
 - BrokerのPORTに合わせてBROKER_URLを更新
@@ -59,7 +60,7 @@ cp .env.example .env.local
 
 ```bash
 # Broker HTTP URL（BrokerのPORTと一致させる必要があります）
-BROKER_URL=http://localhost:3033
+BROKER_URL=http://localhost:3000
 
 # Broker認証トークン（ステップ7以降必須）
 # Web UIでペアリング後に取得
@@ -90,6 +91,7 @@ pnpm dev
 ```
 
 Adapterは以下を実行します:
+
 - PTYで`claude` CLIを起動
 - パーミッションプロンプトの出力を監視
 - 検出されたプロンプトをbrokerに送信
@@ -110,6 +112,7 @@ Adapterを起動すると、すべてのClaude Codeのパーミッションプ�
 Adapterを実行しているときは、`claude`コマンドを別途実行**しないでください**。AdapterはすでにClaude CLIを内部で起動しています。
 
 ✅ **正しい使い方**:
+
 ```bash
 # ターミナル1: Adapterを起動
 cd apps/adapter-claude
@@ -120,6 +123,7 @@ pnpm dev
 ```
 
 ❌ **間違った使い方**:
+
 ```bash
 # ターミナル1: Adapterを起動
 cd apps/adapter-claude
@@ -146,15 +150,18 @@ claude  # これはAdapterに接続されていない別のClaudeインスタン
 ### 問題: Adapterからログが出ない
 
 **症状**:
+
 - `[Adapter]`ログが表示されない
 - Claudeがbrokerに接続されていない様子
 
 **考えられる原因**:
+
 1. Adapterが実行されていない
 2. Adapterを通さずに`claude`を直接実行している
 3. 環境変数が読み込まれていない
 
 **解決方法**:
+
 1. Adapterが実行されていることを確認: `cd apps/adapter-claude && pnpm dev`
 2. `[Adapter] Starting Gate Adapter for Claude CLI`が表示されることを確認
 3. `claude`コマンドを別途実行しない
@@ -163,15 +170,18 @@ claude  # これはAdapterに接続されていない別のClaudeインスタン
 ### 問題: "401 Unauthorized"エラー
 
 **症状**:
+
 - Adapterログに認証エラーが表示される
 - Brokerへのリクエストが401で失敗
 
 **考えられる原因**:
+
 1. `.env.local`に`BROKER_TOKEN`がない
 2. トークンが無効または期限切れ
 3. 別のbrokerインスタンスのトークン
 
 **解決方法**:
+
 1. Brokerが実行されていることを確認
 2. ペアリングコードを使用してWeb UIをbrokerとペアリング
 3. ブラウザのlocalStorageから新しいトークンを取得
@@ -181,15 +191,18 @@ claude  # これはAdapterに接続されていない別のClaudeインスタン
 ### 問題: Brokerへの"Connection refused"
 
 **症状**:
+
 - Brokerに接続できない
 - ログに`ECONNREFUSED`エラー
 
 **考えられる原因**:
+
 1. Brokerが実行されていない
 2. `.env.local`の`BROKER_URL`が間違っている
 3. ポート番号の不一致
 
 **解決方法**:
+
 1. Brokerを起動: `cd apps/broker && pnpm dev`
 2. `apps/broker/.env.local`でBrokerのPORTを確認
 3. `apps/adapter-claude/.env.local`の`BROKER_URL`を一致させる
@@ -199,16 +212,19 @@ claude  # これはAdapterに接続されていない別のClaudeインスタン
 ### 問題: パーミッションプロンプトが検出されない
 
 **症状**:
+
 - Claudeがパーミッションプロンプトを表示
 - しかしWeb UIに表示されない
 - `[Adapter] Permission prompt detected`ログがない
 
 **考えられる原因**:
+
 1. パターン正規表現がClaude Codeの出力と一致しない
 2. ANSI色コードが検出を妨害
 3. 複数行のプロンプトがキャプチャされていない
 
 **解決方法**:
+
 1. デバッグモードを有効化: `DEBUG_MODE=true pnpm dev`
 2. PTY出力のログを確認
 3. `(y/n)`を含む行を探す
@@ -218,16 +234,19 @@ claude  # これはAdapterに接続されていない別のClaudeインスタン
 ### 問題: Web UIが通知を受信しない
 
 **症状**:
+
 - Adapterがプロンプトを検出: `[Adapter] Permission prompt detected`
 - Brokerがリクエストを受信
 - しかしWeb UIに通知が表示されない
 
 **考えられる原因**:
+
 1. Web UIがbrokerに接続されていない
 2. WebSocketが切断されている
 3. ブラウザタブがバックグラウンド（通知が無効）
 
 **解決方法**:
+
 1. Web UIに"Connected"（緑）が表示されることを確認
 2. Web UIページを更新
 3. ブラウザコンソールでWebSocketエラーを確認
@@ -242,6 +261,7 @@ DEBUG_MODE=true pnpm dev
 ```
 
 これにより以下がログ出力されます:
+
 - Claude CLIからのすべてのPTY出力
 - パターンマッチングの試行
 - Broker通信の詳細
@@ -266,6 +286,7 @@ pnpm clean
 ## アーキテクチャ
 
 **主要ファイル**:
+
 - [src/index.ts](src/index.ts) - エントリーポイント、PTYマネージャーを初期化
 - [src/pty-manager.ts](src/pty-manager.ts) - Claude CLIを起動、I/Oを処理
 - [src/detection.ts](src/detection.ts) - パーミッションプロンプトのパターンマッチング
@@ -273,6 +294,7 @@ pnpm clean
 - [src/config.ts](src/config.ts) - 設定の読み込み
 
 **フロー**:
+
 1. index.tsが設定を読み込み、PtyManagerを作成
 2. PtyManagerがPTYで`claude`コマンドを起動
 3. PTY標準出力をPatternDetectorが監視
@@ -291,7 +313,7 @@ $ pnpm dev
 
 [Adapter] Starting Gate Adapter for Claude CLI
 [Adapter] Configuration loaded:
-  Broker URL: http://localhost:3033
+  Broker URL: http://localhost:3000
   Claude Command: claude
   Working Directory: /Users/you/project
 [Adapter] Spawning Claude CLI: claude

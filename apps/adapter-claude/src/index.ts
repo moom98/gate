@@ -1,7 +1,11 @@
 import { loadConfig } from "./config";
-import { PtyManager } from "./pty-manager";
+import { ProcessManager } from "./process-manager";
 
 console.log("[Adapter] Starting Gate Adapter for Claude CLI");
+console.log("[Adapter] Note: Using --dangerously-skip-permissions mode");
+console.log(
+  "[Adapter] All permission prompts are automatically approved by Claude CLI"
+);
 
 // Load configuration
 const config = loadConfig();
@@ -10,13 +14,9 @@ console.log(`  Broker URL: ${config.brokerUrl}`);
 console.log(`  Claude Command: ${config.claudeCommand}`);
 console.log(`  Working Directory: ${config.cwd}`);
 
-// Create PTY manager
-const ptyManager = new PtyManager({
+// Create process manager
+const processManager = new ProcessManager({
   config,
-  onData: (_data: string) => {
-    // TODO (Step 5): Detect permission prompts and send to broker
-    // For now, just pass through to stdout (handled in PtyManager)
-  },
   onExit: (code: number) => {
     console.log(`[Adapter] Exiting with code: ${code}`);
     process.exit(code);
@@ -25,7 +25,7 @@ const ptyManager = new PtyManager({
 
 // Spawn Claude CLI with error handling
 try {
-  ptyManager.spawn();
+  processManager.spawn();
 } catch (error) {
   console.error(
     "[Adapter] Failed to spawn Claude CLI:",
@@ -43,7 +43,7 @@ process.on("SIGINT", () => {
   isShuttingDown = true;
 
   console.log("[Adapter] Received SIGINT, shutting down...");
-  ptyManager.kill();
+  processManager.kill();
   // Note: onExit handler will call process.exit(code)
 });
 
@@ -52,6 +52,6 @@ process.on("SIGTERM", () => {
   isShuttingDown = true;
 
   console.log("[Adapter] Received SIGTERM, shutting down...");
-  ptyManager.kill();
+  processManager.kill();
   // Note: onExit handler will call process.exit(code)
 });
