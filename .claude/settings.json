@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/ummy/project/source/gate/.claude/hooks/pretooluse-gate.js",
+            "timeout": 60000
+          }
+        ]
+      }
+    ]
+  }
+}
