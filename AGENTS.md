@@ -14,7 +14,7 @@ Gate is a permission gateway system that intercepts Claude Code CLI tool executi
 **Technology Stack:**
 - Package Manager: pnpm (monorepo with workspaces)
 - Runtime: Node.js 20 LTS
-- Language: TypeScript (apps), Node.js (hook script)
+- Language: TypeScript (apps), JavaScript (hook script)
 - CI/CD: GitHub Actions (ubuntu-latest)
 - Authentication: JWT tokens via pairing flow
 
@@ -201,8 +201,10 @@ chmod +x .claude/hooks/pretooluse-gate.js
 
 5. **Timeout Test:**
    ```bash
-   # Configure hook with 5-second timeout (edit .claude/settings.json)
-   # "timeout": 5000
+   # Configure hook execution timeout to 5 seconds in .claude/settings.json
+   # For each PreToolUse hook matcher (Bash, Edit, Write, NotebookEdit),
+   # set .hooks.PreToolUse[].hooks[].timeout to 5000
+   # Example: "timeout": 5000
 
    # Start Claude CLI
    > "Run echo test"

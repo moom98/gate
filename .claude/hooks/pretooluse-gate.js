@@ -18,7 +18,7 @@ process.stdin.on('end', async () => {
     const payload = JSON.parse(inputData);
 
     // Validate payload structure
-    if (!payload || typeof payload !== 'object') {
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
       console.error('[Hook] ERROR: Invalid payload - not an object');
       const output = {
         hookSpecificOutput: {
@@ -29,7 +29,6 @@ process.stdin.on('end', async () => {
       };
       console.log(JSON.stringify(output));
       process.exit(0);
-      return;
     }
 
     if (!payload.tool_name || typeof payload.tool_name !== 'string') {
@@ -43,7 +42,6 @@ process.stdin.on('end', async () => {
       };
       console.log(JSON.stringify(output));
       process.exit(0);
-      return;
     }
 
     if (!payload.cwd || typeof payload.cwd !== 'string') {
@@ -57,10 +55,9 @@ process.stdin.on('end', async () => {
       };
       console.log(JSON.stringify(output));
       process.exit(0);
-      return;
     }
 
-    if (!payload.tool_input || typeof payload.tool_input !== 'object') {
+    if (!payload.tool_input || typeof payload.tool_input !== 'object' || Array.isArray(payload.tool_input)) {
       console.error('[Hook] ERROR: Missing or invalid tool_input');
       const output = {
         hookSpecificOutput: {
@@ -71,7 +68,6 @@ process.stdin.on('end', async () => {
       };
       console.log(JSON.stringify(output));
       process.exit(0);
-      return;
     }
 
     // Check if GATE_BROKER_TOKEN is configured
