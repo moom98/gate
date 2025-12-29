@@ -52,6 +52,12 @@ export function useWebSocket(url: string) {
         return; // Prevent connection after unmount
       }
 
+      // Don't connect with empty URL (wait for token to load)
+      if (!url) {
+        setConnectionState("disconnected");
+        return;
+      }
+
       // Close existing WebSocket if URL changed
       if (wsRef.current?.readyState === WebSocket.OPEN) {
         wsRef.current.close();
