@@ -1,6 +1,36 @@
-# Gate Adapter for Claude CLI
+# ⚠️ DEPRECATED: Gate Adapter for Claude CLI (Legacy)
+
+**This adapter is deprecated as of Step 8. Please use Claude Code Hooks instead.**
 
 **[English](README.md)** | 日本語
+
+## Why Deprecated?
+
+As of Gate Step 8, this PTY-based adapter has been replaced by **Claude Code Hooks** (PreToolUse) for the following reasons:
+
+1. **node-pty incompatibility**: node-pty v1.1.0 fails on macOS 26 beta with `posix_spawnp` errors
+2. **Brittle pattern matching**: PTY approach requires regex matching on terminal output, which breaks when Claude Code changes its prompt format
+3. **Native integration**: Hooks provide native Claude Code integration with structured JSON data
+4. **Better reliability**: Hooks have lower latency, better error handling, and no PTY overhead
+5. **Security**: Hooks fail-closed by default, PTY approach requires complex error handling
+
+## Migration Path
+
+**See the root [README.md](../../README.md) for Claude Code Hooks setup instructions.**
+
+The new Hooks-based approach:
+- Works directly with Claude CLI (no PTY wrapper needed)
+- Uses structured JSON input instead of pattern matching
+- Integrates with existing Broker/Web UI/iOS infrastructure
+- No changes required to Broker or clients
+
+## Legacy Documentation
+
+This legacy code is kept for reference and potential fallback scenarios.
+
+---
+
+# Gate Adapter for Claude CLI (Legacy)
 
 PTY wrapper that intercepts Claude Code CLI permission prompts and sends them to the Gate broker for remote approval.
 
@@ -44,7 +74,7 @@ This will:
 #### 1. Build the adapter
 
 ```bash
-cd apps/adapter-claude
+cd apps/adapter-claude-legacy
 pnpm build
 ```
 
@@ -115,7 +145,7 @@ When the adapter is running, do **NOT** execute the `claude` command separately.
 
 ```bash
 # Terminal 1: Start adapter
-cd apps/adapter-claude
+cd apps/adapter-claude-legacy
 pnpm dev
 
 # The adapter spawns Claude CLI
@@ -126,7 +156,7 @@ pnpm dev
 
 ```bash
 # Terminal 1: Start adapter
-cd apps/adapter-claude
+cd apps/adapter-claude-legacy
 pnpm dev
 
 # Terminal 2: DON'T DO THIS
@@ -162,7 +192,7 @@ After starting the adapter with `pnpm dev`:
 
 **Solution**:
 
-1. Make sure adapter is running: `cd apps/adapter-claude && pnpm dev`
+1. Make sure adapter is running: `cd apps/adapter-claude-legacy && pnpm dev`
 2. Check that you see `[Adapter] Starting Gate Adapter for Claude CLI`
 3. Do NOT run `claude` command separately
 4. Verify `.env.local` exists and has correct values
@@ -205,7 +235,7 @@ After starting the adapter with `pnpm dev`:
 
 1. Start broker: `cd apps/broker && pnpm dev`
 2. Check broker's PORT in `apps/broker/.env.local`
-3. Update `BROKER_URL` in `apps/adapter-claude/.env.local` to match
+3. Update `BROKER_URL` in `apps/adapter-claude-legacy/.env.local` to match
 4. Run setup script: `./scripts/setup-adapter.sh`
 5. Restart adapter
 
@@ -308,7 +338,7 @@ pnpm clean
 ## Example Session
 
 ```bash
-$ cd apps/adapter-claude
+$ cd apps/adapter-claude-legacy
 $ pnpm dev
 
 [Adapter] Starting Gate Adapter for Claude CLI
