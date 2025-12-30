@@ -117,7 +117,52 @@ chmod +x .claude/hooks/pretooluse-gate.js
 - Never expose sensitive information (tokens, secrets) in logs or errors
 - Hook script: always fail-closed (deny on error)
 
-## 4. Test Procedures
+## 4. Branch Strategy and Pull Request Guidelines
+
+**Branch Creation:**
+- Create a new feature branch for each logical unit of work
+- Use descriptive branch names following the pattern: `feat/NNN-description` or `fix/NNN-description`
+- Each branch should focus on a single feature or fix
+
+**Pull Request Workflow:**
+- **Create PR for each branch**: Every feature branch must have its own Pull Request
+- **Sequential merging**: Do NOT move to the next branch until the previous PR is merged
+  - Wait for PR review and approval
+  - Merge the current PR before starting work on dependent features
+  - This ensures a clean, linear history and prevents merge conflicts
+- **Japanese PRs**: All Pull Requests must be written in Japanese
+  - Title (タイトル): Concise summary in Japanese
+  - Body (本文): Detailed description in Japanese including:
+    - Summary (概要)
+    - Changes (変更内容)
+    - Testing (テスト方法)
+    - Dependencies (依存関係) if applicable
+
+**Example Workflow:**
+```bash
+# 1. Create and work on first branch
+git checkout -b feat/001-feature-a
+# ... make changes ...
+git commit -m "feat: implement feature A"
+git push -u origin feat/001-feature-a
+gh pr create --title "機能A: 説明" --body "..."
+
+# 2. Wait for PR to be reviewed and merged
+# ⚠️ Do NOT proceed until PR is merged
+
+# 3. After PR is merged, create next branch
+git checkout main
+git pull
+git checkout -b feat/002-feature-b
+# ... make changes ...
+```
+
+**PR Dependencies:**
+- If your PR depends on another unmerged PR, clearly state this in the PR description
+- Use "Depends on #XX" notation
+- Consider waiting for the dependency to be merged before creating the dependent PR
+
+## 5. Test Procedures
 
 **Manual Testing:**
 
