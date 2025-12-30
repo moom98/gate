@@ -100,7 +100,7 @@ final class NotificationManager: NSObject, ObservableObject {
         let notificationRequest = UNNotificationRequest(
             identifier: request.id,
             content: content,
-            trigger: UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)
+            trigger: nil
         )
 
         do {
@@ -147,7 +147,7 @@ final class NotificationManager: NSObject, ObservableObject {
 
 extension NotificationManager: UNUserNotificationCenterDelegate {
     /// Handle notification presentation while app is in foreground
-    /// This is REQUIRED to show notifications when the app is active
+    /// This is REQUIRED to show notifications when the app is in the FOREGROUND
     nonisolated func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification,

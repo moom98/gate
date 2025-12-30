@@ -18,11 +18,11 @@ final class AppState {
         self.config = initialConfig
 
         // Initialize notification manager first
-        let notifManager = NotificationManager()
-        self.notificationManager = notifManager
+        let notificationManager = NotificationManager()
+        self.notificationManager = notificationManager
 
         // Then initialize WebSocket manager with notification manager
-        self.webSocketManager = WebSocketManager(config: initialConfig, notificationManager: notifManager)
+        self.webSocketManager = WebSocketManager(config: initialConfig, notificationManager: notificationManager)
 
         Task {
             await loadSavedCredentials()

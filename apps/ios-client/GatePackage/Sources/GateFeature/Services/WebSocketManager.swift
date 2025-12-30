@@ -104,8 +104,12 @@ final class WebSocketManager {
                 if !pendingRequests.contains(where: { $0.id == request.id }) {
                     pendingRequests.append(request)
 
-                    // Send notification for new permission request
-                    await notificationManager?.notifyPermissionRequest(request)
+                    // Send notification for new permission request without blocking WebSocket handler
+                    if let notificationManager = notificationManager {
+                        Task {
+                            await notificationManager.notifyPermissionRequest(request)
+                        }
+                    }
                 }
             case .permissionResolved(let resolved):
                 pendingRequests.removeAll { $0.id == resolved.id }
