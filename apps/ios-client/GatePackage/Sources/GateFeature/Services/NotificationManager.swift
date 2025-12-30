@@ -21,6 +21,7 @@ final class NotificationManager: NSObject, ObservableObject {
 
     /// Request notification permissions from the user
     func requestAuthorization() async -> Bool {
+        lastError = nil
         do {
             let granted = try await center.requestAuthorization(options: [.alert, .badge, .sound])
             await checkAuthorizationStatus()
@@ -41,6 +42,7 @@ final class NotificationManager: NSObject, ObservableObject {
 
     /// Send a test notification (for debugging)
     func sendTestNotification() async {
+        lastError = nil
         guard authorizationStatus == .authorized else {
             lastError = "Notifications not authorized"
             print("[NotificationManager] Cannot send notification: not authorized")
@@ -92,12 +94,7 @@ extension NotificationManager: UNUserNotificationCenterDelegate {
         print("[NotificationManager] Will present notification: \(notification.request.identifier)")
 
         // Show banner, list, and play sound even when app is in foreground
-        // .banner requires iOS 14+, .list for notification center
-        if #available(iOS 14.0, *) {
-            completionHandler([.banner, .list, .sound])
-        } else {
-            completionHandler([.alert, .sound])
-        }
+        completionHandler([.banner, .list, .sound])
     }
 
     /// Handle notification tap (when user taps the notification)
