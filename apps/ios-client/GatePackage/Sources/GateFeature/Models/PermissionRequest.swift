@@ -16,6 +16,7 @@ struct PermissionRequest: Identifiable, Codable, Sendable {
 enum Decision: String, Codable, Sendable {
     case allow
     case deny
+    case alwaysAllow
 }
 
 struct DecisionPayload: Codable, Sendable {

@@ -23,8 +23,8 @@ export interface PermissionRequest {
  * Response to permission request
  */
 export interface PermissionResponse {
-  /** Decision: allow or deny */
-  decision: "allow" | "deny";
+  /** Decision: allow, deny, or always allow */
+  decision: "allow" | "deny" | "alwaysAllow";
 }
 
 /**
@@ -33,8 +33,8 @@ export interface PermissionResponse {
 export interface DecisionPayload {
   /** Request ID to respond to */
   id: string;
-  /** Decision: allow or deny */
-  decision: "allow" | "deny";
+  /** Decision: allow, deny, or always allow */
+  decision: "allow" | "deny" | "alwaysAllow";
 }
 
 /**
@@ -43,8 +43,8 @@ export interface DecisionPayload {
 export interface PermissionResolved {
   /** Request ID that was resolved */
   id: string;
-  /** Decision: allow or deny */
-  decision: "allow" | "deny";
+  /** Decision: allow, deny, or always allow */
+  decision: "allow" | "deny" | "alwaysAllow";
   /** Reason for the decision (manual user action or automatic timeout) */
   reason?: "timeout" | "manual";
 }

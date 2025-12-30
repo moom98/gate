@@ -36,7 +36,7 @@ export function PermissionRequestCard({ request, brokerUrl }: PermissionRequestC
     return request.details.rawPrompt.slice(0, 97) + "...";
   }, [request.details.rawPrompt, isPromptExpanded]);
 
-  const handleDecision = async (decision: "allow" | "deny") => {
+  const handleDecision = async (decision: "allow" | "deny" | "alwaysAllow") => {
     setIsProcessing(true);
     setError(null);
 
@@ -145,6 +145,13 @@ export function PermissionRequestCard({ request, brokerUrl }: PermissionRequestC
               className="flex-1 bg-green-600 hover:bg-green-700"
             >
               {isProcessing ? "Sending..." : "Allow"}
+            </Button>
+            <Button
+              onClick={() => handleDecision("alwaysAllow")}
+              disabled={isProcessing}
+              className="flex-1 bg-blue-600 hover:bg-blue-700"
+            >
+              {isProcessing ? "Sending..." : "Always Allow"}
             </Button>
             <Button
               onClick={() => handleDecision("deny")}

@@ -10,7 +10,7 @@ export type WSMessage =
   | { type: "permission_request"; payload: PermissionRequest }
   | {
       type: "permission_resolved";
-      payload: { id: string; decision: "allow" | "deny"; reason?: "timeout" | "manual" };
+      payload: { id: string; decision: "allow" | "deny" | "alwaysAllow"; reason?: "timeout" | "manual" };
     };
 
 /**
@@ -100,7 +100,9 @@ export function useWebSocket(url: string) {
                     const title =
                       message.payload.decision === "allow"
                         ? "Request Allowed ✓"
-                        : "Request Denied ✗";
+                        : message.payload.decision === "alwaysAllow"
+                          ? "Always Allowed ✓✓"
+                          : "Request Denied ✗";
 
                     toast.success(title, {
                       description: request.summary.slice(0, 80),
