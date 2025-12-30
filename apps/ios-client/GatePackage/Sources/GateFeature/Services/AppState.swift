@@ -16,8 +16,13 @@ final class AppState {
     init() {
         let initialConfig = BrokerConfig()
         self.config = initialConfig
-        self.webSocketManager = WebSocketManager(config: initialConfig)
-        self.notificationManager = NotificationManager()
+
+        // Initialize notification manager first
+        let notificationManager = NotificationManager()
+        self.notificationManager = notificationManager
+
+        // Then initialize WebSocket manager with notification manager
+        self.webSocketManager = WebSocketManager(config: initialConfig, notificationManager: notificationManager)
 
         Task {
             await loadSavedCredentials()
@@ -45,7 +50,7 @@ final class AppState {
         await authStorage.saveToken(token)
         await authStorage.saveBrokerURL(brokerURL)
 
-        webSocketManager = WebSocketManager(config: config)
+        webSocketManager = WebSocketManager(config: config, notificationManager: notificationManager)
         webSocketManager.connect()
     }
 
