@@ -25,7 +25,7 @@ final class AppState {
         self.webSocketManager = WebSocketManager(config: initialConfig, notificationManager: notificationManager)
 
         // Setup callback for notification actions
-        notifManager.onDecisionMade = { [weak self] requestId, decision in
+        notificationManager.onDecisionMade = { [weak self] requestId, decision in
             guard let self = self else { return }
             Task {
                 await self.handleNotificationDecision(requestId: requestId, decision: decision)
@@ -49,7 +49,7 @@ final class AppState {
             webSocketManager.removeRequest(withId: requestId)
 
             // Mark as resolved in notification manager
-            notificationManager.markRequestResolved(requestId)
+            await notificationManager.markRequestResolved(requestId)
         } catch {
             print("[AppState] Failed to send decision: \(error)")
             // Note: In a production app, you might want to show an error to the user
