@@ -9,6 +9,7 @@ final class NotificationManager: NSObject, ObservableObject {
     @Published var lastError: String?
 
     private let center = UNUserNotificationCenter.current()
+    private var notifiedRequestIds: Set<String> = []
 
     override init() {
         super.init()
@@ -65,6 +66,67 @@ final class NotificationManager: NSObject, ObservableObject {
             lastError = "Failed to schedule notification: \(error.localizedDescription)"
             print("[NotificationManager] Failed to schedule notification: \(error)")
         }
+    }
+
+    /// Send notification for a permission request
+    /// - Parameter request: The permission request to notify about
+    func notifyPermissionRequest(_ request: PermissionRequest) async {
+        // Prevent duplicate notifications for the same request
+        guard !notifiedRequestIds.contains(request.id) else {
+            print("[NotificationManager] Already notified for request: \(request.id)")
+            return
+        }
+
+        guard authorizationStatus == .authorized else {
+            print("[NotificationManager] Cannot send notification: not authorized")
+            return
+        }
+
+        notifiedRequestIds.insert(request.id)
+
+        let content = UNMutableNotificationContent()
+        content.title = "Permission Request"
+        content.body = truncateSummary(request.summary)
+        content.sound = .default
+
+        // Store request ID in userInfo for later reference
+        content.userInfo = [
+            "requestId": request.id,
+            "summary": request.summary
+        ]
+
+        let notificationRequest = UNNotificationRequest(
+            identifier: request.id,
+            content: content,
+            trigger: UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)
+        )
+
+        do {
+            try await center.add(notificationRequest)
+            print("[NotificationManager] Permission request notification sent: \(request.id)")
+        } catch {
+            lastError = "Failed to send notification: \(error.localizedDescription)"
+            print("[NotificationManager] Failed to send notification: \(error)")
+            // Remove from notified set if we failed to send
+            notifiedRequestIds.remove(request.id)
+        }
+    }
+
+    /// Remove a request from the notified set when it's resolved
+    /// - Parameter requestId: The ID of the resolved request
+    func markRequestResolved(_ requestId: String) {
+        notifiedRequestIds.remove(requestId)
+        // Also remove the notification from notification center
+        center.removeDeliveredNotifications(withIdentifiers: [requestId])
+        print("[NotificationManager] Marked request as resolved: \(requestId)")
+    }
+
+    /// Truncate summary to fit in notification
+    private func truncateSummary(_ summary: String, maxLength: Int = 100) -> String {
+        if summary.count <= maxLength {
+            return summary
+        }
+        return String(summary.prefix(maxLength - 3)) + "..."
     }
 
     /// Open system settings to enable notifications

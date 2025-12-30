@@ -16,9 +16,11 @@ final class WebSocketManager {
 
     private var webSocketTask: URLSessionWebSocketTask?
     private let config: BrokerConfig
+    private weak var notificationManager: NotificationManager?
 
-    init(config: BrokerConfig) {
+    init(config: BrokerConfig, notificationManager: NotificationManager? = nil) {
         self.config = config
+        self.notificationManager = notificationManager
     }
 
     func connect() {
@@ -101,9 +103,15 @@ final class WebSocketManager {
             case .permissionRequest(let request):
                 if !pendingRequests.contains(where: { $0.id == request.id }) {
                     pendingRequests.append(request)
+
+                    // Send notification for new permission request
+                    await notificationManager?.notifyPermissionRequest(request)
                 }
             case .permissionResolved(let resolved):
                 pendingRequests.removeAll { $0.id == resolved.id }
+
+                // Mark request as resolved in notification manager
+                notificationManager?.markRequestResolved(resolved.id)
             }
         } catch {
             print("Failed to decode WebSocket message: \(error)")

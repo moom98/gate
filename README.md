@@ -203,10 +203,11 @@ The iOS app supports local notifications to alert you when permission requests a
    - You should see a banner notification appear, even with the app open
    - The notification will also appear in the Notification Center
 
-3. **Permission Request Notifications** (Coming in next version)
-   - When Claude Code requests permission, you'll receive a notification
-   - Tap the notification to view details in the app
-   - Approve or deny from the app interface
+3. **Permission Request Notifications**
+   - When Claude Code requests permission, you'll automatically receive a notification
+   - The notification shows the command being requested
+   - Tap the notification to open the app and view full details
+   - Approve or deny from the app's permission request list
 
 ### Troubleshooting
 
