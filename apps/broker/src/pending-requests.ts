@@ -38,7 +38,7 @@ class PendingRequestStore {
       console.log(
         `[Broker] Request ${request.id} timed out after ${timeoutSec}s, auto-denying`
       );
-      this.resolve(request.id, { decision: "deny" }, "timeout");
+      this.resolve(request.id, { decision: "deny" });
 
       // Store in timeout requests for retry functionality (keep for 5 minutes)
       this.timeoutRequests.set(request.id, request);
@@ -70,7 +70,7 @@ class PendingRequestStore {
    * Resolve a pending request with a decision
    * Returns true if resolved, false if already resolved or not found
    */
-  resolve(id: string, decision: PermissionResponse, _reason?: "timeout" | "manual"): boolean {
+  resolve(id: string, decision: PermissionResponse): boolean {
     const deferred = this.pending.get(id);
 
     if (!deferred) {

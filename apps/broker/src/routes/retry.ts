@@ -16,6 +16,17 @@ export function postRetry(
 ) {
   const { id } = req.params;
 
+  // Validate request ID
+  if (!id || typeof id !== "string" || id.trim() === "") {
+    return res.status(400).json({ success: false });
+  }
+
+  // Validate UUID format (simple regex check)
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(id)) {
+    return res.status(400).json({ success: false });
+  }
+
   // Get the original timeout request
   const originalRequest = pendingRequests.getTimeout(id);
 

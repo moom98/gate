@@ -28,7 +28,7 @@ export function postDecisions(
   console.log("[Broker] Received decision:", { id, decision });
 
   // Attempt to resolve pending request
-  const resolved = pendingRequests.resolve(id, { decision }, "manual");
+  const resolved = pendingRequests.resolve(id, { decision });
 
   // If already resolved, return 409 Conflict
   if (!resolved) {

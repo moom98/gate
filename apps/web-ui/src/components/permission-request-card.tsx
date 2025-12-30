@@ -16,6 +16,7 @@ export function PermissionRequestCard({ request, brokerUrl }: PermissionRequestC
   const [error, setError] = useState<string | null>(null);
   const [resolved, setResolved] = useState(false);
   const [isPromptExpanded, setIsPromptExpanded] = useState(false);
+  const [retrySuccess, setRetrySuccess] = useState(false);
 
   const api = useMemo(() => new BrokerAPI(brokerUrl), [brokerUrl]);
 
@@ -60,6 +61,7 @@ export function PermissionRequestCard({ request, brokerUrl }: PermissionRequestC
       const response = await api.retryRequest(request.id);
       if (response.success && response.newId) {
         console.log(`[UI] Retry successful, new request ID: ${response.newId}`);
+        setRetrySuccess(true);
         // The new request will appear via WebSocket
       } else {
         setError("Request not found or expired");
@@ -74,7 +76,7 @@ export function PermissionRequestCard({ request, brokerUrl }: PermissionRequestC
   };
 
   // Determine card border color
-  const borderColor = resolved
+  const borderColor = resolved || retrySuccess
     ? "border-green-500"
     : request.isTimeout
       ? "border-orange-500"
@@ -125,6 +127,8 @@ export function PermissionRequestCard({ request, brokerUrl }: PermissionRequestC
       <CardFooter className="flex gap-2">
         {resolved ? (
           <p className="text-sm text-green-600 font-medium">Decision sent successfully</p>
+        ) : retrySuccess ? (
+          <p className="text-sm text-green-600 font-medium">Retry successful - new request created</p>
         ) : request.isTimeout ? (
           <Button
             onClick={handleRetry}

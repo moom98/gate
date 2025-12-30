@@ -94,21 +94,25 @@ export function useWebSocket(url: string) {
 
               // Show completion toast notification (except for timeout)
               if (message.payload.reason !== "timeout") {
-                const request = requests.get(message.payload.id);
-                if (request) {
-                  const title = message.payload.decision === "allow"
-                    ? "Request Allowed ✓"
-                    : "Request Denied ✗";
+                setRequests((prev) => {
+                  const request = prev.get(message.payload.id);
+                  if (request) {
+                    const title =
+                      message.payload.decision === "allow"
+                        ? "Request Allowed ✓"
+                        : "Request Denied ✗";
 
-                  toast.success(title, {
-                    description: request.summary.slice(0, 80),
-                    action: {
-                      label: "OK",
-                      onClick: () => {},
-                    },
-                    duration: 5000,
-                  });
-                }
+                    toast.success(title, {
+                      description: request.summary.slice(0, 80),
+                      action: {
+                        label: "OK",
+                        onClick: () => {},
+                      },
+                      duration: 5000,
+                    });
+                  }
+                  return prev;
+                });
               }
 
               // Handle timeout vs manual resolution
