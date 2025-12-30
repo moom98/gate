@@ -4,6 +4,7 @@ public struct MainView: View {
     @Environment(AppState.self) private var appState
 
     @State private var errorMessage: String?
+    @State private var showNotificationSettings = false
 
     public var body: some View {
         @Bindable var appState = appState
@@ -30,6 +31,18 @@ public struct MainView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
+                        Button("Test Notification") {
+                            Task {
+                                await testNotification()
+                            }
+                        }
+
+                        Button("Notification Settings") {
+                            showNotificationSettings = true
+                        }
+
+                        Divider()
+
                         Button("Reconnect") {
                             reconnect()
                         }
@@ -43,6 +56,10 @@ public struct MainView: View {
                         Image(systemName: "ellipsis.circle")
                     }
                 }
+            }
+            .sheet(isPresented: $showNotificationSettings) {
+                NotificationSettingsView()
+                    .environment(appState)
             }
             .alert("Error", isPresented: .constant(errorMessage != nil)) {
                 Button("OK") {
@@ -78,6 +95,10 @@ public struct MainView: View {
 
     private func logout() async {
         await appState.logout()
+    }
+
+    private func testNotification() async {
+        await appState.notificationManager.sendTestNotification()
     }
 }
 

@@ -185,6 +185,46 @@ The authentication token is stored in localStorage, so you won't need to pair ag
 
 **Note:** No adapter needed! Hooks integrate directly with Claude CLI.
 
+## iOS Notifications
+
+The iOS app supports local notifications to alert you when permission requests arrive, even when the app is in the foreground.
+
+### Setup Notifications
+
+1. **Enable Notifications**
+   - Open the iOS app
+   - Tap the menu (⋯) in the top right
+   - Select "Notification Settings"
+   - Tap "Enable Notifications"
+   - Grant permission when prompted
+
+2. **Test Notifications**
+   - In the app menu, select "Test Notification"
+   - You should see a banner notification appear, even with the app open
+   - The notification will also appear in the Notification Center
+
+3. **Permission Request Notifications** (Coming in next version)
+   - When Claude Code requests permission, you'll receive a notification
+   - Tap the notification to view details in the app
+   - Approve or deny from the app interface
+
+### Troubleshooting
+
+**Notifications not appearing:**
+- Check that notifications are enabled in Settings > Gate > Notifications
+- Ensure the app is paired with the broker
+- Try sending a test notification from the app menu
+
+**Notifications disabled:**
+- Go to Notification Settings in the app
+- Tap "Open Settings" to go to system settings
+- Enable all notification options (Banners, Sounds, Badges)
+
+**Important Notes:**
+- Notifications work best when the app is in the foreground
+- Background notification delivery is not currently supported
+- The app must be connected to the broker to receive permission requests
+
 ## Development Commands
 
 **Root-level:**
