@@ -10,8 +10,20 @@ import { PairingCodeStore } from "./pairing-codes";
 import { createPairRouter } from "./routes/pair";
 import { requireAuth } from "./middleware/auth";
 
-// Load environment variables
-dotenv.config();
+// Load environment variables from .env.local
+dotenv.config({ path: ".env.local" });
+
+// Debug: Verify JWT_SECRET is loaded
+console.log("[Broker] Checking JWT_SECRET...");
+console.log("[Broker] JWT_SECRET exists:", !!process.env.JWT_SECRET);
+if (process.env.JWT_SECRET) {
+  console.log(
+    "[Broker] JWT_SECRET (first 20 chars):",
+    process.env.JWT_SECRET.substring(0, 20) + "..."
+  );
+} else {
+  console.log("[Broker] WARNING: JWT_SECRET not found in environment");
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -79,7 +91,9 @@ const server = app.listen(PORT, () => {
     console.log("└─────────────────────────────────────────┘");
     console.log("");
   } else {
-    console.log("[Broker] Production mode: Use POST /v1/pair/generate to create pairing codes");
+    console.log(
+      "[Broker] Production mode: Use POST /v1/pair/generate to create pairing codes"
+    );
     console.log("");
   }
 });
