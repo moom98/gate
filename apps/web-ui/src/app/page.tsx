@@ -29,7 +29,7 @@ export default function Home() {
     setClientId(storedClientId);
   }, [router]);
 
-  const wsUrlWithToken = token ? `${WS_URL}?token=${encodeURIComponent(token)}` : WS_URL;
+  const wsUrlWithToken = token ? `${WS_URL}?token=${encodeURIComponent(token)}` : "";
   const { connectionState, requests } = useWebSocket(wsUrlWithToken);
 
   const handleLogout = () => {
