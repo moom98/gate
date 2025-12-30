@@ -11,11 +11,13 @@ final class AppState {
 
     private let authStorage = AuthStorage()
     private(set) var webSocketManager: WebSocketManager
+    private(set) var notificationManager: NotificationManager
 
     init() {
         let initialConfig = BrokerConfig()
         self.config = initialConfig
         self.webSocketManager = WebSocketManager(config: initialConfig)
+        self.notificationManager = NotificationManager()
 
         Task {
             await loadSavedCredentials()
