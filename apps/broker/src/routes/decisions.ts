@@ -28,7 +28,7 @@ export function postDecisions(
   console.log("[Broker] Received decision:", { id, decision });
 
   // Attempt to resolve pending request
-  const resolved = pendingRequests.resolve(id, { decision });
+  const resolved = pendingRequests.resolve(id, { decision }, "manual");
 
   // If already resolved, return 409 Conflict
   if (!resolved) {
@@ -37,7 +37,7 @@ export function postDecisions(
   }
 
   // Broadcast resolution to WebSocket clients
-  wsManager.broadcastResolution(id, decision);
+  wsManager.broadcastResolution(id, decision, "manual");
 
   res.json({ success: true });
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { toast } from "sonner";
 
 /**
  * WebSocket message types from broker
@@ -9,7 +10,7 @@ export type WSMessage =
   | { type: "permission_request"; payload: PermissionRequest }
   | {
       type: "permission_resolved";
-      payload: { id: string; decision: "allow" | "deny" };
+      payload: { id: string; decision: "allow" | "deny"; reason?: "timeout" | "manual" };
     };
 
 /**
@@ -24,6 +25,7 @@ export interface PermissionRequest {
     rawPrompt: string;
   };
   timeoutSec?: number;
+  isTimeout?: boolean;
 }
 
 /**
@@ -85,20 +87,55 @@ export function useWebSocket(url: string) {
               console.log(
                 "[WebSocket] Permission resolved:",
                 message.payload.id,
-                message.payload.decision
+                message.payload.decision,
+                "reason:",
+                message.payload.reason || "none"
               );
-              // Remove resolved request after a delay to show the result
-              const timeoutId = setTimeout(() => {
-                if (isMountedRef.current) {
-                  setRequests((prev) => {
-                    const next = new Map(prev);
-                    next.delete(message.payload.id);
-                    return next;
+
+              // Show completion toast notification (except for timeout)
+              if (message.payload.reason !== "timeout") {
+                const request = requests.get(message.payload.id);
+                if (request) {
+                  const title = message.payload.decision === "allow"
+                    ? "Request Allowed ✓"
+                    : "Request Denied ✗";
+
+                  toast.success(title, {
+                    description: request.summary.slice(0, 80),
+                    action: {
+                      label: "OK",
+                      onClick: () => {},
+                    },
+                    duration: 5000,
                   });
                 }
-                removeTimeouts.delete(timeoutId);
-              }, 3000);
-              removeTimeouts.add(timeoutId);
+              }
+
+              // Handle timeout vs manual resolution
+              if (message.payload.reason === "timeout") {
+                // Mark request as timed out instead of removing it
+                setRequests((prev) => {
+                  const next = new Map(prev);
+                  const request = next.get(message.payload.id);
+                  if (request) {
+                    next.set(message.payload.id, { ...request, isTimeout: true });
+                  }
+                  return next;
+                });
+              } else {
+                // Remove resolved request after a delay to show the result
+                const timeoutId = setTimeout(() => {
+                  if (isMountedRef.current) {
+                    setRequests((prev) => {
+                      const next = new Map(prev);
+                      next.delete(message.payload.id);
+                      return next;
+                    });
+                  }
+                  removeTimeouts.delete(timeoutId);
+                }, 3000);
+                removeTimeouts.add(timeoutId);
+              }
             }
           } catch (error) {
             console.error("[WebSocket] Failed to parse message:", error);

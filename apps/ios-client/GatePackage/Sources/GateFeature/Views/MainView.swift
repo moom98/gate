@@ -5,6 +5,7 @@ public struct MainView: View {
 
     @State private var errorMessage: String?
     @State private var showNotificationSettings = false
+    @State private var selectedPrompt: (id: String, text: String)? = nil
 
     public var body: some View {
         @Bindable var appState = appState
@@ -61,6 +62,12 @@ public struct MainView: View {
                 NotificationSettingsView()
                     .environment(appState)
             }
+            .sheet(item: Binding(
+                get: { selectedPrompt.map { PromptSheetItem(id: $0.id, text: $0.text) } },
+                set: { selectedPrompt = $0.map { ($0.id, $0.text) } }
+            )) { item in
+                FullPromptView(prompt: item.text)
+            }
             .alert("Error", isPresented: .constant(errorMessage != nil)) {
                 Button("OK") {
                     errorMessage = nil
@@ -68,6 +75,12 @@ public struct MainView: View {
             } message: {
                 if let errorMessage {
                     Text(errorMessage)
+                }
+            }
+            .onAppear {
+                // Set up notification tap callback
+                appState.notificationManager.onNotificationTapped = { requestId, rawPrompt in
+                    selectedPrompt = (id: requestId, text: rawPrompt)
                 }
             }
         }
@@ -163,5 +176,36 @@ struct EmptyStateView: View {
                 .padding(.horizontal)
         }
         .padding()
+    }
+}
+
+// Helper type for sheet presentation
+struct PromptSheetItem: Identifiable {
+    let id: String
+    let text: String
+}
+
+// Full prompt display view
+struct FullPromptView: View {
+    @Environment(\.dismiss) private var dismiss
+    let prompt: String
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                Text(prompt)
+                    .font(.body)
+                    .padding()
+            }
+            .navigationTitle("Full Prompt")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
     }
 }

@@ -18,6 +18,14 @@ export interface DecisionResponse {
 }
 
 /**
+ * API response for retry
+ */
+export interface RetryResponse {
+  success: boolean;
+  newId?: string;
+}
+
+/**
  * API client for broker HTTP endpoints
  */
 export class BrokerAPI {
@@ -58,6 +66,39 @@ export class BrokerAPI {
       return await response.json();
     } catch (error) {
       console.error("[API] Failed to send decision:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Retry a timed-out request
+   */
+  async retryRequest(id: string): Promise<RetryResponse> {
+    const token = AuthStorage.getToken();
+
+    if (!token) {
+      throw new Error("Not authenticated");
+    }
+
+    try {
+      const response = await fetch(`${this.baseUrl}/v1/requests/retry/${id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error("Request not found or expired");
+        }
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("[API] Failed to retry request:", error);
       throw error;
     }
   }

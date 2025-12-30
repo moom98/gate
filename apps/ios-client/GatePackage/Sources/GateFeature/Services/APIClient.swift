@@ -23,6 +23,11 @@ enum APIError: Error, LocalizedError {
     }
 }
 
+struct RetryResponse: Codable {
+    let success: Bool
+    let newId: String?
+}
+
 actor APIClient {
     private let config: BrokerConfig
 
@@ -108,6 +113,51 @@ actor APIClient {
                     statusCode: httpResponse.statusCode,
                     message: "Request failed"
                 )
+            }
+        } catch let error as APIError {
+            throw error
+        } catch {
+            throw APIError.networkError(error)
+        }
+    }
+
+    func retryRequest(requestId: String) async throws -> RetryResponse {
+        guard let url = URL(string: "\(config.brokerURL)/v1/requests/retry/\(requestId)") else {
+            throw APIError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        if let token = config.authToken {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw APIError.invalidResponse
+            }
+
+            if httpResponse.statusCode != 200 {
+                if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
+                    throw APIError.httpError(
+                        statusCode: httpResponse.statusCode,
+                        message: errorResponse.error ?? "Unknown error"
+                    )
+                }
+                throw APIError.httpError(
+                    statusCode: httpResponse.statusCode,
+                    message: "Request failed"
+                )
+            }
+
+            do {
+                return try JSONDecoder().decode(RetryResponse.self, from: data)
+            } catch {
+                throw APIError.decodingError(error)
             }
         } catch let error as APIError {
             throw error

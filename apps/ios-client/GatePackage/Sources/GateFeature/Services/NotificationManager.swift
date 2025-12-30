@@ -13,11 +13,18 @@ final class NotificationManager: NSObject, ObservableObject {
 
     // Notification category and action identifiers
     private static let permissionCategoryIdentifier = "PERMISSION_REQUEST"
+    private static let timeoutCategoryIdentifier = "TIMEOUT_NOTIFICATION"
+    private static let resolvedCategoryIdentifier = "PERMISSION_RESOLVED"
     private static let allowActionIdentifier = "ALLOW_ACTION"
     private static let denyActionIdentifier = "DENY_ACTION"
+    private static let retryActionIdentifier = "RETRY_ACTION"
+    private static let dismissActionIdentifier = "DISMISS_ACTION"
+    private static let okActionIdentifier = "OK_ACTION"
 
-    // Callback for handling notification actions
+    // Callbacks for handling notification actions
     var onDecisionMade: ((String, Decision) -> Void)?
+    var onNotificationTapped: ((String, String) -> Void)?
+    var onRetryRequested: ((String) -> Void)?
 
     override init() {
         super.init()
@@ -31,6 +38,7 @@ final class NotificationManager: NSObject, ObservableObject {
 
     /// Setup notification categories with Allow/Deny actions
     private func setupNotificationCategories() {
+        // Permission request category (Allow/Deny)
         let allowAction = UNNotificationAction(
             identifier: Self.allowActionIdentifier,
             title: "Allow",
@@ -43,14 +51,48 @@ final class NotificationManager: NSObject, ObservableObject {
             options: [.destructive]
         )
 
-        let category = UNNotificationCategory(
+        let permissionCategory = UNNotificationCategory(
             identifier: Self.permissionCategoryIdentifier,
             actions: [allowAction, denyAction],
             intentIdentifiers: [],
             options: []
         )
 
-        center.setNotificationCategories([category])
+        // Timeout notification category (Retry/Dismiss)
+        let retryAction = UNNotificationAction(
+            identifier: Self.retryActionIdentifier,
+            title: "Retry",
+            options: [.foreground]
+        )
+
+        let dismissAction = UNNotificationAction(
+            identifier: Self.dismissActionIdentifier,
+            title: "Dismiss",
+            options: []
+        )
+
+        let timeoutCategory = UNNotificationCategory(
+            identifier: Self.timeoutCategoryIdentifier,
+            actions: [retryAction, dismissAction],
+            intentIdentifiers: [],
+            options: []
+        )
+
+        // Permission resolved category (OK only)
+        let okAction = UNNotificationAction(
+            identifier: Self.okActionIdentifier,
+            title: "OK",
+            options: []
+        )
+
+        let resolvedCategory = UNNotificationCategory(
+            identifier: Self.resolvedCategoryIdentifier,
+            actions: [okAction],
+            intentIdentifiers: [],
+            options: []
+        )
+
+        center.setNotificationCategories([permissionCategory, timeoutCategory, resolvedCategory])
         print("[NotificationManager] Notification categories registered")
     }
 
@@ -126,10 +168,11 @@ final class NotificationManager: NSObject, ObservableObject {
         content.sound = .default
         content.categoryIdentifier = Self.permissionCategoryIdentifier
 
-        // Store request ID in userInfo for later reference
+        // Store request ID and full prompt in userInfo for later reference
         content.userInfo = [
             "requestId": request.id,
-            "summary": request.summary
+            "summary": request.summary,
+            "rawPrompt": request.details.rawPrompt
         ]
 
         let notificationRequest = UNNotificationRequest(
@@ -158,8 +201,74 @@ final class NotificationManager: NSObject, ObservableObject {
         print("[NotificationManager] Marked request as resolved: \(requestId)")
     }
 
+    /// Send notification for a timed-out permission request
+    /// - Parameter request: The permission request that timed out
+    func notifyTimeout(_ request: PermissionRequest) async {
+        guard authorizationStatus == .authorized else {
+            print("[NotificationManager] Cannot send timeout notification: not authorized")
+            return
+        }
+
+        let content = UNMutableNotificationContent()
+        content.title = "Request Timed Out"
+        content.body = truncateSummary(request.summary)
+        content.sound = .default
+        content.categoryIdentifier = Self.timeoutCategoryIdentifier
+
+        // Store request ID and prompt for retry functionality
+        content.userInfo = [
+            "requestId": request.id,
+            "summary": request.summary,
+            "rawPrompt": request.details.rawPrompt,
+            "isTimeout": true
+        ]
+
+        let notificationRequest = UNNotificationRequest(
+            identifier: "\(request.id)-timeout",
+            content: content,
+            trigger: nil
+        )
+
+        do {
+            try await center.add(notificationRequest)
+            print("[NotificationManager] Timeout notification sent: \(request.id)")
+        } catch {
+            print("[NotificationManager] Failed to send timeout notification: \(error)")
+        }
+    }
+
+    /// Send notification when a permission request is resolved
+    /// - Parameters:
+    ///   - request: The permission request that was resolved
+    ///   - decision: The decision that was made
+    func notifyPermissionResolved(_ request: PermissionRequest, decision: Decision) async {
+        guard authorizationStatus == .authorized else {
+            print("[NotificationManager] Cannot send resolved notification: not authorized")
+            return
+        }
+
+        let content = UNMutableNotificationContent()
+        content.title = decision == .allow ? "Request Allowed ✓" : "Request Denied ✗"
+        content.body = truncateSummary(request.summary, maxLength: 60)
+        content.sound = .default
+        content.categoryIdentifier = Self.resolvedCategoryIdentifier
+
+        let notificationRequest = UNNotificationRequest(
+            identifier: UUID().uuidString,
+            content: content,
+            trigger: nil
+        )
+
+        do {
+            try await center.add(notificationRequest)
+            print("[NotificationManager] Permission resolved notification sent: \(request.id) (\(decision))")
+        } catch {
+            print("[NotificationManager] Failed to send resolved notification: \(error)")
+        }
+    }
+
     /// Truncate summary to fit in notification
-    private func truncateSummary(_ summary: String, maxLength: Int = 100) -> String {
+    private func truncateSummary(_ summary: String, maxLength: Int = 40) -> String {
         if summary.count <= maxLength {
             return summary
         }
@@ -203,35 +312,66 @@ extension NotificationManager: UNUserNotificationCenterDelegate {
         print("[NotificationManager] Did receive notification response: \(response.actionIdentifier)")
 
         // Extract request ID from notification userInfo
-        guard let requestId = response.notification.request.content.userInfo["requestId"] as? String else {
-            print("[NotificationManager] No request ID found in notification")
-            completionHandler()
-            return
-        }
+        let requestId = response.notification.request.content.userInfo["requestId"] as? String
+        let rawPrompt = response.notification.request.content.userInfo["rawPrompt"] as? String
 
         // Handle action buttons
         let decision: Decision?
         switch response.actionIdentifier {
         case Self.allowActionIdentifier:
+            guard let requestId = requestId else {
+                completionHandler()
+                return
+            }
             decision = .allow
             print("[NotificationManager] User allowed request: \(requestId)")
 
         case Self.denyActionIdentifier:
+            guard let requestId = requestId else {
+                completionHandler()
+                return
+            }
             decision = .deny
             print("[NotificationManager] User denied request: \(requestId)")
 
+        case Self.retryActionIdentifier:
+            // Handle retry action for timeout notifications
+            guard let requestId = requestId else {
+                completionHandler()
+                return
+            }
+            print("[NotificationManager] User requested retry: \(requestId)")
+            Task { @MainActor in
+                self.onRetryRequested?(requestId)
+            }
+            completionHandler()
+            return
+
+        case Self.dismissActionIdentifier, Self.okActionIdentifier:
+            // Just dismiss the notification, no action needed
+            print("[NotificationManager] User dismissed notification")
+            completionHandler()
+            return
+
         case UNNotificationDefaultActionIdentifier:
             // User tapped the notification body (not an action button)
-            // Just open the app, no decision made
-            print("[NotificationManager] User tapped notification: \(requestId)")
-            decision = nil
+            // Show full prompt if available
+            if let requestId = requestId, let rawPrompt = rawPrompt {
+                print("[NotificationManager] User tapped notification: \(requestId)")
+                Task { @MainActor in
+                    self.onNotificationTapped?(requestId, rawPrompt)
+                }
+            }
+            completionHandler()
+            return
 
         default:
-            decision = nil
+            completionHandler()
+            return
         }
 
         // Notify the callback if a decision was made
-        if let decision = decision {
+        if let decision = decision, let requestId = requestId {
             Task { @MainActor in
                 self.onDecisionMade?(requestId, decision)
             }
