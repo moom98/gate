@@ -2,7 +2,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { Server } from "http";
 import { IncomingMessage } from "http";
 import { parse } from "url";
-import { PermissionRequest } from "./types";
+import { PermissionRequest, PermissionResolved } from "./types";
 import { AuthService } from "./auth";
 
 /**
@@ -12,7 +12,7 @@ export type WSMessage =
   | { type: "permission_request"; payload: PermissionRequest }
   | {
       type: "permission_resolved";
-      payload: { id: string; decision: "allow" | "deny" };
+      payload: PermissionResolved;
     };
 
 /**
@@ -80,15 +80,19 @@ class WebSocketManager {
   /**
    * Broadcast permission resolution to all connected clients
    */
-  broadcastResolution(id: string, decision: "allow" | "deny"): void {
+  broadcastResolution(
+    id: string,
+    decision: "allow" | "deny",
+    reason?: "timeout" | "manual"
+  ): void {
     const message: WSMessage = {
       type: "permission_resolved",
-      payload: { id, decision },
+      payload: { id, decision, reason },
     };
 
     this.broadcast(message);
     console.log(
-      `[Broker] Broadcasted permission_resolved ${id} (${decision}) to ${this.clients.size} clients`
+      `[Broker] Broadcasted permission_resolved ${id} (${decision}, reason: ${reason || "none"}) to ${this.clients.size} clients`
     );
   }
 

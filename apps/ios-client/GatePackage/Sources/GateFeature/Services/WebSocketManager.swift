@@ -108,6 +108,17 @@ final class WebSocketManager {
                     await notificationManager?.notifyPermissionRequest(request)
                 }
             case .permissionResolved(let resolved):
+                // Send completion notification before removing request
+                if let request = pendingRequests.first(where: { $0.id == resolved.id }) {
+                    // Check if this was a timeout
+                    if resolved.reason == "timeout" {
+                        await notificationManager?.notifyTimeout(request)
+                    } else {
+                        // Send completion notification for manual decisions
+                        await notificationManager?.notifyPermissionResolved(request, decision: resolved.decision)
+                    }
+                }
+
                 pendingRequests.removeAll { $0.id == resolved.id }
 
                 // Mark request as resolved in notification manager

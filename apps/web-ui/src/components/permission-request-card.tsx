@@ -15,8 +15,26 @@ export function PermissionRequestCard({ request, brokerUrl }: PermissionRequestC
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resolved, setResolved] = useState(false);
+  const [isPromptExpanded, setIsPromptExpanded] = useState(false);
+  const [retrySuccess, setRetrySuccess] = useState(false);
 
   const api = useMemo(() => new BrokerAPI(brokerUrl), [brokerUrl]);
+
+  // Truncate summary to 80 characters
+  const truncatedSummary = useMemo(() => {
+    if (request.summary.length <= 80) {
+      return request.summary;
+    }
+    return request.summary.slice(0, 77) + "...";
+  }, [request.summary]);
+
+  // Truncate raw prompt to 100 characters when collapsed
+  const displayPrompt = useMemo(() => {
+    if (isPromptExpanded || request.details.rawPrompt.length <= 100) {
+      return request.details.rawPrompt;
+    }
+    return request.details.rawPrompt.slice(0, 97) + "...";
+  }, [request.details.rawPrompt, isPromptExpanded]);
 
   const handleDecision = async (decision: "allow" | "deny") => {
     setIsProcessing(true);
@@ -35,11 +53,43 @@ export function PermissionRequestCard({ request, brokerUrl }: PermissionRequestC
     }
   };
 
+  const handleRetry = async () => {
+    setIsProcessing(true);
+    setError(null);
+
+    try {
+      const response = await api.retryRequest(request.id);
+      if (response.success && response.newId) {
+        console.log(`[UI] Retry successful, new request ID: ${response.newId}`);
+        setRetrySuccess(true);
+        // The new request will appear via WebSocket
+      } else {
+        setError("Request not found or expired");
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
+      setError(errorMessage);
+      console.error(`[UI] Failed to retry request:`, err);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Determine card border color
+  const borderColor = resolved || retrySuccess
+    ? "border-green-500"
+    : request.isTimeout
+      ? "border-orange-500"
+      : "border-yellow-500";
+
   return (
-    <Card className={resolved ? "border-green-500" : "border-yellow-500"}>
+    <Card className={borderColor}>
       <CardHeader>
-        <CardTitle>{request.summary}</CardTitle>
-        <CardDescription>Request ID: {request.id}</CardDescription>
+        <CardTitle>{truncatedSummary}</CardTitle>
+        <CardDescription>
+          Request ID: {request.id}
+          {request.isTimeout && <span className="ml-2 text-orange-600 font-medium">(Timed Out)</span>}
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">
         <div>
@@ -51,9 +101,21 @@ export function PermissionRequestCard({ request, brokerUrl }: PermissionRequestC
           <p className="text-sm text-muted-foreground font-mono">{request.details.cwd}</p>
         </div>
         <div>
-          <p className="text-sm font-medium">Prompt:</p>
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-sm font-medium">Prompt:</p>
+            {request.details.rawPrompt.length > 100 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsPromptExpanded(!isPromptExpanded)}
+                className="h-6 text-xs"
+              >
+                {isPromptExpanded ? "Show less" : "Show more"}
+              </Button>
+            )}
+          </div>
           <pre className="text-xs text-muted-foreground bg-muted p-2 rounded overflow-auto max-h-32">
-            {request.details.rawPrompt}
+            {displayPrompt}
           </pre>
         </div>
         {error && (
@@ -65,6 +127,16 @@ export function PermissionRequestCard({ request, brokerUrl }: PermissionRequestC
       <CardFooter className="flex gap-2">
         {resolved ? (
           <p className="text-sm text-green-600 font-medium">Decision sent successfully</p>
+        ) : retrySuccess ? (
+          <p className="text-sm text-green-600 font-medium">Retry successful - new request created</p>
+        ) : request.isTimeout ? (
+          <Button
+            onClick={handleRetry}
+            disabled={isProcessing}
+            className="flex-1 bg-orange-600 hover:bg-orange-700"
+          >
+            {isProcessing ? "Retrying..." : "Retry"}
+          </Button>
         ) : (
           <>
             <Button

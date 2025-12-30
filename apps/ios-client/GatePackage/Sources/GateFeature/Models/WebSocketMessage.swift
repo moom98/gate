@@ -7,15 +7,12 @@ enum WebSocketMessage: Codable, Sendable {
     struct PermissionResolved: Codable, Sendable {
         let id: String
         let decision: Decision
+        let reason: String?
     }
 
     enum CodingKeys: String, CodingKey {
         case type
-        case id
-        case summary
-        case details
-        case timeoutSec
-        case decision
+        case payload
     }
 
     init(from decoder: Decoder) throws {
@@ -24,21 +21,12 @@ enum WebSocketMessage: Codable, Sendable {
 
         switch type {
         case "permission_request":
-            let id = try container.decode(String.self, forKey: .id)
-            let summary = try container.decode(String.self, forKey: .summary)
-            let details = try container.decode(PermissionRequest.Details.self, forKey: .details)
-            let timeoutSec = try container.decode(Int.self, forKey: .timeoutSec)
-            self = .permissionRequest(PermissionRequest(
-                id: id,
-                summary: summary,
-                details: details,
-                timeoutSec: timeoutSec
-            ))
+            let payload = try container.decode(PermissionRequest.self, forKey: .payload)
+            self = .permissionRequest(payload)
 
         case "permission_resolved":
-            let id = try container.decode(String.self, forKey: .id)
-            let decision = try container.decode(Decision.self, forKey: .decision)
-            self = .permissionResolved(PermissionResolved(id: id, decision: decision))
+            let payload = try container.decode(PermissionResolved.self, forKey: .payload)
+            self = .permissionResolved(payload)
 
         default:
             throw DecodingError.dataCorruptedError(
@@ -55,15 +43,11 @@ enum WebSocketMessage: Codable, Sendable {
         switch self {
         case .permissionRequest(let request):
             try container.encode("permission_request", forKey: .type)
-            try container.encode(request.id, forKey: .id)
-            try container.encode(request.summary, forKey: .summary)
-            try container.encode(request.details, forKey: .details)
-            try container.encode(request.timeoutSec, forKey: .timeoutSec)
+            try container.encode(request, forKey: .payload)
 
         case .permissionResolved(let resolved):
             try container.encode("permission_resolved", forKey: .type)
-            try container.encode(resolved.id, forKey: .id)
-            try container.encode(resolved.decision, forKey: .decision)
+            try container.encode(resolved, forKey: .payload)
         }
     }
 }

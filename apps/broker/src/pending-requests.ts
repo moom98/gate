@@ -17,6 +17,7 @@ interface DeferredDecision {
  */
 class PendingRequestStore {
   private pending = new Map<string, DeferredDecision>();
+  private timeoutRequests = new Map<string, PermissionRequest>();
 
   /**
    * Create a new pending request with timeout
@@ -38,6 +39,13 @@ class PendingRequestStore {
         `[Broker] Request ${request.id} timed out after ${timeoutSec}s, auto-denying`
       );
       this.resolve(request.id, { decision: "deny" });
+
+      // Store in timeout requests for retry functionality (keep for 5 minutes)
+      this.timeoutRequests.set(request.id, request);
+      setTimeout(() => {
+        this.timeoutRequests.delete(request.id);
+        console.log(`[Broker] Timeout request ${request.id} expired (5 min cleanup)`);
+      }, 5 * 60 * 1000);
     }, timeoutSec * 1000);
 
     const deferred: DeferredDecision = {
@@ -113,6 +121,13 @@ class PendingRequestStore {
     return Array.from(this.pending.values())
       .filter((d) => !d.resolved)
       .map((d) => d.request);
+  }
+
+  /**
+   * Get timeout request by ID (for retry functionality)
+   */
+  getTimeout(id: string): PermissionRequest | undefined {
+    return this.timeoutRequests.get(id);
   }
 }
 

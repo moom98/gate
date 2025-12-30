@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import { getHealth } from "./routes/health";
 import { postRequests } from "./routes/requests";
 import { postDecisions } from "./routes/decisions";
+import { postRetry } from "./routes/retry";
 import { wsManager } from "./websocket";
 import { AuthService } from "./auth";
 import { PairingCodeStore } from "./pairing-codes";
@@ -47,6 +48,7 @@ app.get("/health", getHealth);
 app.use("/v1/pair", createPairRouter(authService, pairingCodeStore));
 app.post("/v1/requests", requireAuth(authService), postRequests);
 app.post("/v1/decisions", requireAuth(authService), postDecisions);
+app.post("/v1/requests/retry/:id", requireAuth(authService), postRetry);
 
 // Error handling middleware (must come after all routes)
 app.use(

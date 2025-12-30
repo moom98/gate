@@ -37,7 +37,7 @@ export function postDecisions(
   }
 
   // Broadcast resolution to WebSocket clients
-  wsManager.broadcastResolution(id, decision);
+  wsManager.broadcastResolution(id, decision, "manual");
 
   res.json({ success: true });
 }

@@ -38,6 +38,18 @@ export interface DecisionPayload {
 }
 
 /**
+ * Permission resolved event (WebSocket broadcast)
+ */
+export interface PermissionResolved {
+  /** Request ID that was resolved */
+  id: string;
+  /** Decision: allow or deny */
+  decision: "allow" | "deny";
+  /** Reason for the decision (manual user action or automatic timeout) */
+  reason?: "timeout" | "manual";
+}
+
+/**
  * Health check response
  */
 export interface HealthResponse {
