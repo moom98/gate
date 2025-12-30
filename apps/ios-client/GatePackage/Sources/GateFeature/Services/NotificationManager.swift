@@ -11,12 +11,50 @@ final class NotificationManager: NSObject, ObservableObject {
     private let center = UNUserNotificationCenter.current()
     private var notifiedRequestIds: Set<String> = []
 
+    // Notification category and action identifiers
+    private static let permissionCategoryIdentifier = "PERMISSION_REQUEST"
+    private static let allowActionIdentifier = "ALLOW_ACTION"
+    private static let denyActionIdentifier = "DENY_ACTION"
+
+    // Callback for handling notification actions
+    var onDecisionMade: ((String, Decision) -> Void)?
+
     override init() {
         super.init()
         center.delegate = self
+        setupNotificationCategories()
 
         Task {
             await checkAuthorizationStatus()
+        }
+    }
+
+    /// Setup notification categories with Allow/Deny actions
+    private func setupNotificationCategories() {
+        let allowAction = UNNotificationAction(
+            identifier: Self.allowActionIdentifier,
+            title: "Allow",
+            options: [.foreground]
+        )
+
+        let denyAction = UNNotificationAction(
+            identifier: Self.denyActionIdentifier,
+            title: "Deny",
+            options: [.destructive]
+        )
+
+        let category = UNNotificationCategory(
+            identifier: Self.permissionCategoryIdentifier,
+            actions: [allowAction, denyAction],
+            intentIdentifiers: [],
+            options: []
+        )
+
+        center.getNotificationCategories { existingCategories in
+            var allCategories = existingCategories
+            allCategories.insert(category)
+            self.center.setNotificationCategories(allCategories)
+            print("[NotificationManager] Notification categories registered")
         }
     }
 
@@ -90,6 +128,7 @@ final class NotificationManager: NSObject, ObservableObject {
         content.title = "Permission Request"
         content.body = truncateSummary(request.summary)
         content.sound = .default
+        content.categoryIdentifier = Self.permissionCategoryIdentifier
 
         // Store request ID in userInfo for later reference
         content.userInfo = [
@@ -167,8 +206,40 @@ extension NotificationManager: UNUserNotificationCenterDelegate {
     ) {
         print("[NotificationManager] Did receive notification response: \(response.actionIdentifier)")
 
-        // Handle notification tap here
-        // response.notification.request.content.userInfo contains custom data
+        // Extract request ID from notification userInfo
+        guard let requestId = response.notification.request.content.userInfo["requestId"] as? String else {
+            print("[NotificationManager] No request ID found in notification")
+            completionHandler()
+            return
+        }
+
+        // Handle action buttons
+        let decision: Decision?
+        switch response.actionIdentifier {
+        case Self.allowActionIdentifier:
+            decision = .allow
+            print("[NotificationManager] User allowed request: \(requestId)")
+
+        case Self.denyActionIdentifier:
+            decision = .deny
+            print("[NotificationManager] User denied request: \(requestId)")
+
+        case UNNotificationDefaultActionIdentifier:
+            // User tapped the notification body (not an action button)
+            // Just open the app, no decision made
+            print("[NotificationManager] User tapped notification: \(requestId)")
+            decision = nil
+
+        default:
+            decision = nil
+        }
+
+        // Notify the callback if a decision was made
+        if let decision = decision {
+            Task { @MainActor in
+                self.onDecisionMade?(requestId, decision)
+            }
+        }
 
         completionHandler()
     }
