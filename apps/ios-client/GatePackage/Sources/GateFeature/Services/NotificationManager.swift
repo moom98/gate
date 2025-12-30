@@ -50,8 +50,12 @@ final class NotificationManager: NSObject, ObservableObject {
             options: []
         )
 
-        center.setNotificationCategories([category])
-        print("[NotificationManager] Notification categories registered")
+        center.getNotificationCategories { existingCategories in
+            var allCategories = existingCategories
+            allCategories.insert(category)
+            self.center.setNotificationCategories(allCategories)
+            print("[NotificationManager] Notification categories registered")
+        }
     }
 
     /// Request notification permissions from the user
