@@ -141,9 +141,12 @@ struct StatusRow: View {
                 Circle()
                     .fill(color)
                     .frame(width: 8, height: 8)
+                    .accessibilityHidden(true)
                 Text(value)
                     .foregroundColor(color)
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("\(title): \(value)")
         }
     }
 }

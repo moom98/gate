@@ -56,6 +56,7 @@ final class NotificationManager: NSObject, ObservableObject {
 
     /// Request notification permissions from the user
     func requestAuthorization() async -> Bool {
+        lastError = nil
         do {
             let granted = try await center.requestAuthorization(options: [.alert, .badge, .sound])
             await checkAuthorizationStatus()
@@ -76,6 +77,7 @@ final class NotificationManager: NSObject, ObservableObject {
 
     /// Send a test notification (for debugging)
     func sendTestNotification() async {
+        lastError = nil
         guard authorizationStatus == .authorized else {
             lastError = "Notifications not authorized"
             print("[NotificationManager] Cannot send notification: not authorized")
@@ -133,7 +135,7 @@ final class NotificationManager: NSObject, ObservableObject {
         let notificationRequest = UNNotificationRequest(
             identifier: request.id,
             content: content,
-            trigger: UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)
+            trigger: nil
         )
 
         do {
@@ -149,7 +151,7 @@ final class NotificationManager: NSObject, ObservableObject {
 
     /// Remove a request from the notified set when it's resolved
     /// - Parameter requestId: The ID of the resolved request
-    func markRequestResolved(_ requestId: String) {
+    func markRequestResolved(_ requestId: String) async {
         notifiedRequestIds.remove(requestId)
         // Also remove the notification from notification center
         center.removeDeliveredNotifications(withIdentifiers: [requestId])
@@ -180,7 +182,7 @@ final class NotificationManager: NSObject, ObservableObject {
 
 extension NotificationManager: UNUserNotificationCenterDelegate {
     /// Handle notification presentation while app is in foreground
-    /// This is REQUIRED to show notifications when the app is active
+    /// This is REQUIRED to show notifications when the app is in the FOREGROUND
     nonisolated func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification,
@@ -189,12 +191,7 @@ extension NotificationManager: UNUserNotificationCenterDelegate {
         print("[NotificationManager] Will present notification: \(notification.request.identifier)")
 
         // Show banner, list, and play sound even when app is in foreground
-        // .banner requires iOS 14+, .list for notification center
-        if #available(iOS 14.0, *) {
-            completionHandler([.banner, .list, .sound])
-        } else {
-            completionHandler([.alert, .sound])
-        }
+        completionHandler([.banner, .list, .sound])
     }
 
     /// Handle notification tap (when user taps the notification)

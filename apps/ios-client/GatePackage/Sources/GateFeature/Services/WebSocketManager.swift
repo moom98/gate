@@ -111,7 +111,7 @@ final class WebSocketManager {
                 pendingRequests.removeAll { $0.id == resolved.id }
 
                 // Mark request as resolved in notification manager
-                notificationManager?.markRequestResolved(resolved.id)
+                await notificationManager?.markRequestResolved(resolved.id)
             }
         } catch {
             print("Failed to decode WebSocket message: \(error)")
