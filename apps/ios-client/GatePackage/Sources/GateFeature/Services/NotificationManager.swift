@@ -116,7 +116,7 @@ final class NotificationManager: NSObject, ObservableObject {
 
     /// Remove a request from the notified set when it's resolved
     /// - Parameter requestId: The ID of the resolved request
-    func markRequestResolved(_ requestId: String) {
+    func markRequestResolved(_ requestId: String) async {
         notifiedRequestIds.remove(requestId)
         // Also remove the notification from notification center
         center.removeDeliveredNotifications(withIdentifiers: [requestId])
