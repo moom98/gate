@@ -44,6 +44,37 @@ export function useWebSocket(url: string) {
   const reconnectAttemptsRef = useRef(0);
   const isMountedRef = useRef(true);
   const removeTimeoutsRef = useRef<Set<NodeJS.Timeout>>(new Set());
+  const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const IDLE_TIMEOUT_MS = 3000; // 3 seconds
+
+  // Reset idle timer
+  const resetIdleTimer = (currentRequests: Map<string, PermissionRequest>) => {
+    // Clear existing timer
+    if (idleTimerRef.current) {
+      clearTimeout(idleTimerRef.current);
+      idleTimerRef.current = null;
+    }
+
+    // Only start idle timer if there are no pending requests
+    if (currentRequests.size > 0) {
+      return;
+    }
+
+    // Start new idle timer
+    idleTimerRef.current = setTimeout(() => {
+      if (isMountedRef.current) {
+        toast.success("Claude is Ready", {
+          description: "Waiting for your input",
+          action: {
+            label: "OK",
+            onClick: () => {},
+          },
+          duration: 5000,
+        });
+      }
+      idleTimerRef.current = null;
+    }, IDLE_TIMEOUT_MS);
+  };
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -82,7 +113,12 @@ export function useWebSocket(url: string) {
 
             if (message.type === "permission_request") {
               console.log("[WebSocket] Received permission request:", message.payload.id);
-              setRequests((prev) => new Map(prev).set(message.payload.id, message.payload));
+              setRequests((prev) => {
+                const next = new Map(prev).set(message.payload.id, message.payload);
+                // Reset idle timer on new request
+                resetIdleTimer(next);
+                return next;
+              });
             } else if (message.type === "permission_resolved") {
               console.log(
                 "[WebSocket] Permission resolved:",
@@ -92,28 +128,7 @@ export function useWebSocket(url: string) {
                 message.payload.reason || "none"
               );
 
-              // Show completion toast notification (except for timeout)
-              if (message.payload.reason !== "timeout") {
-                setRequests((prev) => {
-                  const request = prev.get(message.payload.id);
-                  if (request) {
-                    const title =
-                      message.payload.decision === "allow"
-                        ? "Request Allowed ✓"
-                        : "Request Denied ✗";
-
-                    toast.success(title, {
-                      description: request.summary.slice(0, 80),
-                      action: {
-                        label: "OK",
-                        onClick: () => {},
-                      },
-                      duration: 5000,
-                    });
-                  }
-                  return prev;
-                });
-              }
+              // No completion toast notification for allow/deny
 
               // Handle timeout vs manual resolution
               if (message.payload.reason === "timeout") {
@@ -124,21 +139,19 @@ export function useWebSocket(url: string) {
                   if (request) {
                     next.set(message.payload.id, { ...request, isTimeout: true });
                   }
+                  // Reset idle timer after marking timeout
+                  resetIdleTimer(next);
                   return next;
                 });
               } else {
-                // Remove resolved request after a delay to show the result
-                const timeoutId = setTimeout(() => {
-                  if (isMountedRef.current) {
-                    setRequests((prev) => {
-                      const next = new Map(prev);
-                      next.delete(message.payload.id);
-                      return next;
-                    });
-                  }
-                  removeTimeouts.delete(timeoutId);
-                }, 3000);
-                removeTimeouts.add(timeoutId);
+                // Remove resolved request immediately
+                setRequests((prev) => {
+                  const next = new Map(prev);
+                  next.delete(message.payload.id);
+                  // Reset idle timer after removing request
+                  resetIdleTimer(next);
+                  return next;
+                });
               }
             }
           } catch (error) {
@@ -182,6 +195,12 @@ export function useWebSocket(url: string) {
 
     return () => {
       isMountedRef.current = false;
+
+      // Clear idle timer
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current);
+        idleTimerRef.current = null;
+      }
 
       // Clear reconnection timeout
       if (reconnectTimeoutRef.current) {

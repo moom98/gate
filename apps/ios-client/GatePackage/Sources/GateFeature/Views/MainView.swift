@@ -32,12 +32,6 @@ public struct MainView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
-                        Button("Test Notification") {
-                            Task {
-                                await testNotification()
-                            }
-                        }
-
                         Button("Notification Settings") {
                             showNotificationSettings = true
                         }
@@ -108,10 +102,6 @@ public struct MainView: View {
 
     private func logout() async {
         await appState.logout()
-    }
-
-    private func testNotification() async {
-        await appState.notificationManager.sendTestNotification()
     }
 }
 

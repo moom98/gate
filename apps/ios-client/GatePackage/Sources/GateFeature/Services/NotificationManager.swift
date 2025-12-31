@@ -274,6 +274,33 @@ final class NotificationManager: NSObject, ObservableObject {
         }
     }
 
+    /// Send notification when Claude is ready and waiting for user input
+    func notifyClaudeReady() async {
+        guard authorizationStatus == .authorized else {
+            print("[NotificationManager] Cannot send Claude ready notification: not authorized")
+            return
+        }
+
+        let content = UNMutableNotificationContent()
+        content.title = "Claude is Ready"
+        content.body = "Waiting for your input"
+        content.sound = .default
+        content.categoryIdentifier = Self.resolvedCategoryIdentifier
+
+        let notificationRequest = UNNotificationRequest(
+            identifier: UUID().uuidString,
+            content: content,
+            trigger: nil
+        )
+
+        do {
+            try await center.add(notificationRequest)
+            print("[NotificationManager] Claude ready notification sent")
+        } catch {
+            print("[NotificationManager] Failed to send Claude ready notification: \(error)")
+        }
+    }
+
     /// Truncate summary to fit in notification
     private func truncateSummary(_ summary: String, maxLength: Int = 40) -> String {
         if summary.count <= maxLength {

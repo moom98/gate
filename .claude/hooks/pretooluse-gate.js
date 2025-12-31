@@ -4,10 +4,42 @@ const https = require('https');
 const http = require('http');
 const { randomUUID } = require('crypto');
 
-// Configuration from environment
-const BROKER_URL = process.env.GATE_BROKER_URL || 'http://localhost:3000';
-const BROKER_TOKEN = process.env.GATE_BROKER_TOKEN;
+// Configuration from environment or fallback to settings file
+let BROKER_URL = process.env.GATE_BROKER_URL || 'http://localhost:3000';
+let BROKER_TOKEN = process.env.GATE_BROKER_TOKEN;
 const TIMEOUT_MS = 60000; // 60 seconds
+
+// Fallback: Read from ~/.claude/settings.json if env vars not set
+if (!BROKER_TOKEN) {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const os = require('os');
+    const settingsPath = path.join(os.homedir(), '.claude', 'settings.json');
+
+    if (fs.existsSync(settingsPath)) {
+      const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+      const bashHook = settings?.hooks?.PreToolUse?.find(h => h.matcher === 'Bash');
+      if (bashHook?.hooks?.[0]?.env) {
+        BROKER_URL = bashHook.hooks[0].env.GATE_BROKER_URL || BROKER_URL;
+        BROKER_TOKEN = bashHook.hooks[0].env.GATE_BROKER_TOKEN;
+        console.error('[Hook] Loaded config from ~/.claude/settings.json');
+      }
+    }
+  } catch (err) {
+    console.error(`[Hook] Failed to load settings: ${err.message}`);
+  }
+}
+
+// Debug: Log environment variable status and token details
+console.error(`[Hook] Debug: GATE_BROKER_URL = ${BROKER_URL}`);
+console.error(`[Hook] Debug: GATE_BROKER_TOKEN = ${BROKER_TOKEN ? '***set***' : 'NOT SET'}`);
+if (BROKER_TOKEN) {
+  console.error(`[Hook] Debug: Token (first 30 chars): ${BROKER_TOKEN.substring(0, 30)}...`);
+  console.error(`[Hook] Debug: Token (last 10 chars): ...${BROKER_TOKEN.substring(BROKER_TOKEN.length - 10)}`);
+}
+console.error(`[Hook] Debug: All env vars: ${JSON.stringify(Object.keys(process.env).filter(k => k.startsWith('GATE_')))}`);
+
 
 // Read stdin
 let inputData = '';
