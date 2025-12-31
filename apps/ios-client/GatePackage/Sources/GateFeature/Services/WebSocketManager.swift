@@ -13,12 +13,11 @@ enum ConnectionStatus {
 final class WebSocketManager {
     private(set) var status: ConnectionStatus = .disconnected
     private(set) var pendingRequests: [PermissionRequest] = []
+    private(set) var isClaudeIdle: Bool = false
 
     private var webSocketTask: URLSessionWebSocketTask?
     private let config: BrokerConfig
     private weak var notificationManager: NotificationManager?
-    private var idleTimer: Task<Void, Never>?
-    private let idleTimeoutSeconds: Double = 10.0
 
     init(config: BrokerConfig, notificationManager: NotificationManager? = nil) {
         self.config = config
@@ -60,12 +59,15 @@ final class WebSocketManager {
     }
 
     func disconnect() {
-        idleTimer?.cancel()
-        idleTimer = nil
         webSocketTask?.cancel(with: .goingAway, reason: nil)
         webSocketTask = nil
         status = .disconnected
         pendingRequests.removeAll()
+        isClaudeIdle = false
+    }
+
+    func dismissIdleState() {
+        isClaudeIdle = false
     }
 
     private func receiveMessages() async {
@@ -111,8 +113,8 @@ final class WebSocketManager {
                     // Send notification for new permission request
                     await notificationManager?.notifyPermissionRequest(request)
 
-                    // Reset idle timer on new request
-                    resetIdleTimer()
+                    // Clear idle state when new request arrives
+                    isClaudeIdle = false
                 }
             case .permissionResolved(let resolved):
                 // Only send timeout notifications, not completion notifications
@@ -126,44 +128,19 @@ final class WebSocketManager {
 
                 // Mark request as resolved in notification manager
                 await notificationManager?.markRequestResolved(resolved.id)
+            case .claudeIdlePrompt:
+                // Set idle state - will show card in UI
+                isClaudeIdle = true
 
-                // Reset idle timer after request resolution
-                resetIdleTimer()
+                // Also send notification (only shown when app is in background)
+                await notificationManager?.notifyClaudeReady()
             }
         } catch {
             print("Failed to decode WebSocket message: \(error)")
         }
     }
 
-    private func resetIdleTimer() {
-        // Cancel existing timer
-        idleTimer?.cancel()
-
-        // Only start idle timer if there are no pending requests
-        guard pendingRequests.isEmpty else {
-            idleTimer = nil
-            return
-        }
-
-        // Start new idle timer
-        idleTimer = Task { @MainActor in
-            try? await Task.sleep(for: .seconds(idleTimeoutSeconds))
-
-            // Check if task was cancelled
-            guard !Task.isCancelled else { return }
-
-            // Check again if there are no pending requests
-            guard pendingRequests.isEmpty else { return }
-
-            // Send "Claude ready" notification
-            await notificationManager?.notifyClaudeReady()
-        }
-    }
-
     func removeRequest(withId id: String) {
         pendingRequests.removeAll { $0.id == id }
-
-        // Reset idle timer when request is manually removed
-        resetIdleTimer()
     }
 }

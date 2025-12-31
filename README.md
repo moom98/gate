@@ -227,6 +227,99 @@ The iOS app supports local notifications to alert you when permission requests a
 - Background notification delivery is not currently supported
 - The app must be connected to the broker to receive permission requests
 
+## Claude Idle Notifications
+
+Gate can automatically notify you when Claude Code enters idle state (waiting for user input). This uses Claude Code's Notification hook with the `idle_prompt` event.
+
+### How It Works
+
+1. When Claude Code has been idle for 60+ seconds waiting for user input, the `idle_prompt` event is triggered
+2. The hook script (`notification-idle-prompt.js`) sends the event to the Broker via `/v1/claude-events`
+3. The Broker broadcasts the event to all connected clients (Web UI and iOS)
+4. You receive a notification saying "Claude is Ready - Waiting for your input"
+5. If the Broker is unavailable, the hook falls back to macOS desktop notification
+
+### Setup
+
+The idle notification hook is already configured in `.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "Notification": [
+      {
+        "matcher": "idle_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/absolute/path/to/gate/.claude/hooks/notification-idle-prompt.js",
+            "timeout": 10000,
+            "env": {
+              "GATE_BROKER_URL": "http://localhost:3000",
+              "GATE_BROKER_TOKEN": "{{REPLACE_WITH_YOUR_TOKEN}}"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**Configuration steps:**
+
+1. Update the `command` path to match your Gate installation directory
+2. Replace `{{REPLACE_WITH_YOUR_TOKEN}}` with your authentication token (same as PreToolUse hooks)
+3. Make sure the hook script is executable: `chmod +x .claude/hooks/notification-idle-prompt.js`
+
+### Verification
+
+To test if the idle notification is working:
+
+1. Start the Broker and connect a client (Web UI or iOS)
+2. Start Claude Code in a terminal: `claude`
+3. Let Claude complete a task and wait for user input
+4. After 60+ seconds of inactivity, you should receive a "Claude is Ready" notification
+
+**Checking logs:**
+
+```bash
+# Check if the hook script is being called
+tail -f ~/.claude/logs/*.log | grep "NotificationHook"
+
+# Check Broker logs for event receipt
+# (in apps/broker terminal output)
+# Look for: "[Broker] Received Claude event: idle_prompt"
+```
+
+### Troubleshooting
+
+**Notifications not appearing:**
+- Verify the hook script path in `.claude/settings.json` is correct
+- Check that `GATE_BROKER_TOKEN` is set correctly
+- Ensure the Broker is running and accessible
+- Check Claude Code logs for hook execution errors
+
+**idle_prompt not triggering:**
+- The event requires 60+ seconds of continuous idle time
+- Some Claude Code versions may not support `idle_prompt` - check your version with `claude --version`
+- Try the Test Notification feature in the iOS app or Web UI to verify notification delivery works
+
+**Fallback notification (macOS only):**
+- If the Broker is unreachable, the hook will attempt to show a macOS desktop notification
+- Requires either `terminal-notifier` (Homebrew) or uses built-in `osascript`
+- To install terminal-notifier: `brew install terminal-notifier`
+
+### Known Limitations
+
+1. **60-second delay**: The `idle_prompt` event only triggers after 60+ seconds of inactivity. There's no way to reduce this delay as it's a Claude Code limitation.
+
+2. **Environment-specific behavior**: Some Claude Code environments or versions may not fire `idle_prompt` reliably. This is a known limitation of the Claude Code Hooks system.
+
+3. **No active task detection**: The notification will fire even if Claude is waiting for external events (like a running server). It only detects user input idle state.
+
+4. **Fallback notification (macOS only)**: Desktop notifications via `osascript` or `terminal-notifier` only work on macOS.
+
 ## Development Commands
 
 **Root-level:**
@@ -288,7 +381,8 @@ gate/
 │       └── tsconfig.json
 ├── .claude/
 │   ├── hooks/
-│   │   └── pretooluse-gate.js  # Claude Code PreToolUse hook
+│   │   ├── pretooluse-gate.js        # Claude Code PreToolUse hook
+│   │   └── notification-idle-prompt.js  # Claude Code Notification hook (idle_prompt)
 │   └── settings.json.example   # Hook configuration template
 ├── .github/
 │   └── workflows/

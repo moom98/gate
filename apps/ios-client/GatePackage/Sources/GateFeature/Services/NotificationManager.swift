@@ -11,6 +11,10 @@ final class NotificationManager: NSObject, ObservableObject {
     private let center = UNUserNotificationCenter.current()
     private var notifiedRequestIds: Set<String> = []
 
+    /// Track whether the app is currently active (foreground)
+    /// When true, notifications will not be shown
+    var isAppActive: Bool = true
+
     // Notification category and action identifiers
     private static let permissionCategoryIdentifier = "PERMISSION_REQUEST"
     private static let timeoutCategoryIdentifier = "TIMEOUT_NOTIFICATION"
@@ -325,7 +329,7 @@ final class NotificationManager: NSObject, ObservableObject {
 
 extension NotificationManager: UNUserNotificationCenterDelegate {
     /// Handle notification presentation while app is in foreground
-    /// This is REQUIRED to show notifications when the app is in the FOREGROUND
+    /// Only shows notifications when the app is in background
     nonisolated func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification,
@@ -333,8 +337,19 @@ extension NotificationManager: UNUserNotificationCenterDelegate {
     ) {
         print("[NotificationManager] Will present notification: \(notification.request.identifier)")
 
-        // Show banner, list, and play sound even when app is in foreground
-        completionHandler([.banner, .list, .sound])
+        // Check if app is active (foreground) - if so, don't show notification
+        // Access isAppActive from MainActor context
+        let isActive = MainActor.assumeIsolated {
+            return self.isAppActive
+        }
+
+        if isActive {
+            print("[NotificationManager] App is active, suppressing notification")
+            completionHandler([])
+        } else {
+            print("[NotificationManager] App is inactive, showing notification")
+            completionHandler([.banner, .list, .sound])
+        }
     }
 
     /// Handle notification tap (when user taps the notification)

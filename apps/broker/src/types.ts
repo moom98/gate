@@ -57,3 +57,17 @@ export interface HealthResponse {
   timestamp: string;
   version: string;
 }
+
+/**
+ * Claude Code event payload
+ */
+export interface ClaudeEventPayload {
+  /** Event type */
+  type: "idle_prompt";
+  /** Raw payload from Claude Code Hooks */
+  raw: unknown;
+  /** Timestamp */
+  ts: string;
+  /** Project path */
+  project?: string;
+}

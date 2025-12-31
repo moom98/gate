@@ -2,7 +2,11 @@ import { WebSocketServer, WebSocket } from "ws";
 import { Server } from "http";
 import { IncomingMessage } from "http";
 import { parse } from "url";
-import { PermissionRequest, PermissionResolved } from "./types";
+import {
+  PermissionRequest,
+  PermissionResolved,
+  ClaudeEventPayload,
+} from "./types";
 import { AuthService } from "./auth";
 
 /**
@@ -13,7 +17,8 @@ export type WSMessage =
   | {
       type: "permission_resolved";
       payload: PermissionResolved;
-    };
+    }
+  | { type: "claude_idle_prompt"; payload: ClaudeEventPayload };
 
 /**
  * WebSocket connection manager
@@ -93,6 +98,21 @@ class WebSocketManager {
     this.broadcast(message);
     console.log(
       `[Broker] Broadcasted permission_resolved ${id} (${decision}, reason: ${reason || "none"}) to ${this.clients.size} clients`
+    );
+  }
+
+  /**
+   * Broadcast Claude idle event to all connected clients
+   */
+  broadcastClaudeEvent(event: ClaudeEventPayload): void {
+    const message: WSMessage = {
+      type: "claude_idle_prompt",
+      payload: event,
+    };
+
+    this.broadcast(message);
+    console.log(
+      `[Broker] Broadcasted claude_idle_prompt (project: ${event.project || "unknown"}) to ${this.clients.size} clients`
     );
   }
 

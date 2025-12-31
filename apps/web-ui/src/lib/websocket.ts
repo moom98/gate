@@ -11,6 +11,10 @@ export type WSMessage =
   | {
       type: "permission_resolved";
       payload: { id: string; decision: "allow" | "deny"; reason?: "timeout" | "manual" };
+    }
+  | {
+      type: "claude_idle_prompt";
+      payload: { type: string; ts: string; project?: string };
     };
 
 /**
@@ -44,37 +48,6 @@ export function useWebSocket(url: string) {
   const reconnectAttemptsRef = useRef(0);
   const isMountedRef = useRef(true);
   const removeTimeoutsRef = useRef<Set<NodeJS.Timeout>>(new Set());
-  const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const IDLE_TIMEOUT_MS = 10000; // 10 seconds
-
-  // Reset idle timer
-  const resetIdleTimer = (currentRequests: Map<string, PermissionRequest>) => {
-    // Clear existing timer
-    if (idleTimerRef.current) {
-      clearTimeout(idleTimerRef.current);
-      idleTimerRef.current = null;
-    }
-
-    // Only start idle timer if there are no pending requests
-    if (currentRequests.size > 0) {
-      return;
-    }
-
-    // Start new idle timer
-    idleTimerRef.current = setTimeout(() => {
-      if (isMountedRef.current) {
-        toast.success("Claude is Ready", {
-          description: "Waiting for your input",
-          action: {
-            label: "OK",
-            onClick: () => {},
-          },
-          duration: 5000,
-        });
-      }
-      idleTimerRef.current = null;
-    }, IDLE_TIMEOUT_MS);
-  };
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -113,12 +86,7 @@ export function useWebSocket(url: string) {
 
             if (message.type === "permission_request") {
               console.log("[WebSocket] Received permission request:", message.payload.id);
-              setRequests((prev) => {
-                const next = new Map(prev).set(message.payload.id, message.payload);
-                // Reset idle timer on new request
-                resetIdleTimer(next);
-                return next;
-              });
+              setRequests((prev) => new Map(prev).set(message.payload.id, message.payload));
             } else if (message.type === "permission_resolved") {
               console.log(
                 "[WebSocket] Permission resolved:",
@@ -139,8 +107,6 @@ export function useWebSocket(url: string) {
                   if (request) {
                     next.set(message.payload.id, { ...request, isTimeout: true });
                   }
-                  // Reset idle timer after marking timeout
-                  resetIdleTimer(next);
                   return next;
                 });
               } else {
@@ -148,11 +114,20 @@ export function useWebSocket(url: string) {
                 setRequests((prev) => {
                   const next = new Map(prev);
                   next.delete(message.payload.id);
-                  // Reset idle timer after removing request
-                  resetIdleTimer(next);
                   return next;
                 });
               }
+            } else if (message.type === "claude_idle_prompt") {
+              console.log("[WebSocket] Claude idle prompt received");
+              // Show "Claude is Ready" notification
+              toast.success("Claude is Ready", {
+                description: "Waiting for your input",
+                action: {
+                  label: "OK",
+                  onClick: () => {},
+                },
+                duration: 5000,
+              });
             }
           } catch (error) {
             console.error("[WebSocket] Failed to parse message:", error);
@@ -195,12 +170,6 @@ export function useWebSocket(url: string) {
 
     return () => {
       isMountedRef.current = false;
-
-      // Clear idle timer
-      if (idleTimerRef.current) {
-        clearTimeout(idleTimerRef.current);
-        idleTimerRef.current = null;
-      }
 
       // Clear reconnection timeout
       if (reconnectTimeoutRef.current) {

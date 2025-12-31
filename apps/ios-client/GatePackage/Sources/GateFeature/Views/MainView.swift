@@ -16,6 +16,14 @@ public struct MainView: View {
                     StatusBadge(status: appState.webSocketManager.status)
                         .padding(.top)
 
+                    // Claude idle notification card
+                    if appState.webSocketManager.isClaudeIdle {
+                        ClaudeIdleCard {
+                            appState.webSocketManager.dismissIdleState()
+                        }
+                        .padding(.top, 8)
+                    }
+
                     if appState.webSocketManager.pendingRequests.isEmpty {
                         EmptyStateView()
                     } else {
