@@ -3,7 +3,7 @@ import SwiftUI
 public struct PairingView: View {
     @Environment(AppState.self) private var appState
 
-    @State private var brokerURL = "http://localhost:3000"
+    @State private var brokerURL = NetworkUtility.generateDefaultBrokerURL()
     @State private var pairingCode = ""
     @State private var isLoading = false
     @State private var errorMessage: String?
