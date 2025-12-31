@@ -13,6 +13,12 @@ struct PermissionRequest: Identifiable, Codable, Sendable {
     }
 }
 
+struct ResolvedPermission: Identifiable, Sendable {
+    let id: String
+    let request: PermissionRequest
+    let decision: Decision
+}
+
 enum Decision: String, Codable, Sendable {
     case allow
     case deny
