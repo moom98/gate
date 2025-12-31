@@ -1,4 +1,5 @@
 import { PermissionRequest, PermissionResponse } from "./types";
+import { alwaysAllowRules } from "./always-allow-rules";
 
 /**
  * Deferred promise for pending requests
@@ -23,6 +24,12 @@ class PendingRequestStore {
    * Create a new pending request with timeout
    */
   create(request: PermissionRequest): Promise<PermissionResponse> {
+    // Check if request matches any always-allow rule
+    if (alwaysAllowRules.matches(request)) {
+      console.log(`[Broker] Request ${request.id} auto-allowed by always-allow rule`);
+      return Promise.resolve({ decision: "allow" });
+    }
+
     const timeoutSec = request.timeoutSec ?? 60;
 
     let resolve: (decision: PermissionResponse) => void;

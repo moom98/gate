@@ -5,6 +5,7 @@ struct PermissionRequest: Identifiable, Codable, Sendable {
     let summary: String
     let details: Details
     let timeoutSec: Int
+    let allowAlwaysAllow: Bool?
 
     struct Details: Codable, Sendable {
         let cwd: String
@@ -13,9 +14,16 @@ struct PermissionRequest: Identifiable, Codable, Sendable {
     }
 }
 
+struct ResolvedPermission: Identifiable, Sendable {
+    let id: String
+    let request: PermissionRequest
+    let decision: Decision
+}
+
 enum Decision: String, Codable, Sendable {
     case allow
     case deny
+    case alwaysAllow
 }
 
 struct DecisionPayload: Codable, Sendable {

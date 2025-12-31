@@ -82,7 +82,7 @@ class WebSocketManager {
    */
   broadcastResolution(
     id: string,
-    decision: "allow" | "deny",
+    decision: "allow" | "deny" | "alwaysAllow",
     reason?: "timeout" | "manual"
   ): void {
     const message: WSMessage = {

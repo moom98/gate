@@ -13,6 +13,7 @@ enum ConnectionStatus {
 final class WebSocketManager {
     private(set) var status: ConnectionStatus = .disconnected
     private(set) var pendingRequests: [PermissionRequest] = []
+    private(set) var resolvedPermissions: [ResolvedPermission] = []
 
     private var webSocketTask: URLSessionWebSocketTask?
     private let config: BrokerConfig
@@ -116,6 +117,14 @@ final class WebSocketManager {
                     } else {
                         // Send completion notification for manual decisions
                         await notificationManager?.notifyPermissionResolved(request, decision: resolved.decision)
+
+                        // Add to resolved permissions list for in-app display
+                        let resolvedPermission = ResolvedPermission(
+                            id: resolved.id,
+                            request: request,
+                            decision: resolved.decision
+                        )
+                        resolvedPermissions.insert(resolvedPermission, at: 0) // Insert at top
                     }
                 }
 
@@ -131,5 +140,9 @@ final class WebSocketManager {
 
     func removeRequest(withId id: String) {
         pendingRequests.removeAll { $0.id == id }
+    }
+
+    func removeResolvedPermission(withId id: String) {
+        resolvedPermissions.removeAll { $0.id == id }
     }
 }

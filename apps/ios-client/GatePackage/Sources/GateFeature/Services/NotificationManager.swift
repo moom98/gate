@@ -17,6 +17,7 @@ final class NotificationManager: NSObject, ObservableObject {
     private static let resolvedCategoryIdentifier = "PERMISSION_RESOLVED"
     private static let allowActionIdentifier = "ALLOW_ACTION"
     private static let denyActionIdentifier = "DENY_ACTION"
+    private static let alwaysAllowActionIdentifier = "ALWAYS_ALLOW_ACTION"
     private static let retryActionIdentifier = "RETRY_ACTION"
     private static let dismissActionIdentifier = "DISMISS_ACTION"
     private static let okActionIdentifier = "OK_ACTION"
@@ -36,12 +37,18 @@ final class NotificationManager: NSObject, ObservableObject {
         }
     }
 
-    /// Setup notification categories with Allow/Deny actions
+    /// Setup notification categories with Allow/Always Allow/Deny actions
     private func setupNotificationCategories() {
-        // Permission request category (Allow/Deny)
+        // Permission request category (Allow/Always Allow/Deny)
         let allowAction = UNNotificationAction(
             identifier: Self.allowActionIdentifier,
             title: "Allow",
+            options: [.foreground]
+        )
+
+        let alwaysAllowAction = UNNotificationAction(
+            identifier: Self.alwaysAllowActionIdentifier,
+            title: "Always Allow",
             options: [.foreground]
         )
 
@@ -53,7 +60,7 @@ final class NotificationManager: NSObject, ObservableObject {
 
         let permissionCategory = UNNotificationCategory(
             identifier: Self.permissionCategoryIdentifier,
-            actions: [allowAction, denyAction],
+            actions: [allowAction, alwaysAllowAction, denyAction],
             intentIdentifiers: [],
             options: []
         )
@@ -332,6 +339,14 @@ extension NotificationManager: UNUserNotificationCenterDelegate {
             }
             decision = .allow
             print("[NotificationManager] User allowed request: \(requestId)")
+
+        case Self.alwaysAllowActionIdentifier:
+            guard let requestId = requestId else {
+                completionHandler()
+                return
+            }
+            decision = .alwaysAllow
+            print("[NotificationManager] User always allowed request: \(requestId)")
 
         case Self.denyActionIdentifier:
             guard let requestId = requestId else {
