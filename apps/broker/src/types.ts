@@ -17,6 +17,8 @@ export interface PermissionRequest {
   };
   /** Timeout in seconds (default: 60) */
   timeoutSec?: number;
+  /** Whether "Always Allow" option should be available (default: false) */
+  allowAlwaysAllow?: boolean;
 }
 
 /**

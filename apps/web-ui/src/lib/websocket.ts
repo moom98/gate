@@ -26,6 +26,7 @@ export interface PermissionRequest {
   };
   timeoutSec?: number;
   isTimeout?: boolean;
+  allowAlwaysAllow?: boolean;
 }
 
 /**

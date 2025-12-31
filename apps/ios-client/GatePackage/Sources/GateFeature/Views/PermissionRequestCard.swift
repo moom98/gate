@@ -86,26 +86,29 @@ struct PermissionRequestCard: View {
                 .tint(.red)
                 .disabled(isSending)
 
-                Button {
-                    Task {
-                        await sendDecision(.alwaysAllow)
-                    }
-                } label: {
-                    HStack {
-                        Spacer()
-                        if isSending {
-                            ProgressView()
-                                .progressViewStyle(.circular)
-                        } else {
-                            Text("Always Allow")
-                                .font(.caption)
+                // Show Always Allow button only if allowed
+                if request.allowAlwaysAllow == true {
+                    Button {
+                        Task {
+                            await sendDecision(.alwaysAllow)
                         }
-                        Spacer()
+                    } label: {
+                        HStack {
+                            Spacer()
+                            if isSending {
+                                ProgressView()
+                                    .progressViewStyle(.circular)
+                            } else {
+                                Text("Always Allow")
+                                    .font(.caption)
+                            }
+                            Spacer()
+                        }
                     }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.blue)
+                    .disabled(isSending)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(.blue)
-                .disabled(isSending)
 
                 Button {
                     Task {

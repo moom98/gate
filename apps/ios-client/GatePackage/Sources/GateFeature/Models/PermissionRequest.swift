@@ -5,6 +5,7 @@ struct PermissionRequest: Identifiable, Codable, Sendable {
     let summary: String
     let details: Details
     let timeoutSec: Int
+    let allowAlwaysAllow: Bool?
 
     struct Details: Codable, Sendable {
         let cwd: String
