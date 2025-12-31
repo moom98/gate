@@ -67,7 +67,7 @@ struct PermissionRequestCard: View {
             HStack(spacing: 12) {
                 Button {
                     Task {
-                        await sendDecision(.deny)
+                        await sendDecision(.allow)
                     }
                 } label: {
                     HStack {
@@ -76,14 +76,14 @@ struct PermissionRequestCard: View {
                             ProgressView()
                                 .progressViewStyle(.circular)
                         } else {
-                            Text("Deny")
+                            Text("Allow")
                                 .font(.caption)
                         }
                         Spacer()
                     }
                 }
-                .buttonStyle(.bordered)
-                .tint(.red)
+                .buttonStyle(.borderedProminent)
+                .tint(.green)
                 .disabled(isSending)
 
                 // Show Always Allow button only if allowed
@@ -112,7 +112,7 @@ struct PermissionRequestCard: View {
 
                 Button {
                     Task {
-                        await sendDecision(.allow)
+                        await sendDecision(.deny)
                     }
                 } label: {
                     HStack {
@@ -121,14 +121,14 @@ struct PermissionRequestCard: View {
                             ProgressView()
                                 .progressViewStyle(.circular)
                         } else {
-                            Text("Allow")
+                            Text("Deny")
                                 .font(.caption)
                         }
                         Spacer()
                     }
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(.green)
+                .buttonStyle(.bordered)
+                .tint(.red)
                 .disabled(isSending)
             }
         }

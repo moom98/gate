@@ -105,7 +105,11 @@ export function useWebSocket(url: string) {
                           ? "Always Allowed ✓✓"
                           : "Request Denied ✗";
 
-                    toast.success(title, {
+                    // Use appropriate toast type based on decision
+                    const toastFn =
+                      message.payload.decision === "deny" ? toast.error : toast.success;
+
+                    toastFn(title, {
                       description: request.summary.slice(0, 80),
                       action: {
                         label: "OK",
