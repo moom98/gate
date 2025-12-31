@@ -12,16 +12,20 @@ final class AppState {
     private let authStorage = AuthStorage()
     private(set) var webSocketManager: WebSocketManager
     private(set) var notificationManager: NotificationManager
+    private(set) var toastManager: ToastManager
 
     init() {
         let initialConfig = BrokerConfig()
         self.config = initialConfig
 
-        // Initialize notification manager first
+        // Initialize managers
         let notificationManager = NotificationManager()
         self.notificationManager = notificationManager
 
-        // Then initialize WebSocket manager with notification manager
+        let toastManager = ToastManager()
+        self.toastManager = toastManager
+
+        // Initialize WebSocket manager with notification manager
         self.webSocketManager = WebSocketManager(config: initialConfig, notificationManager: notificationManager)
 
         // Setup callback for notification actions
@@ -37,6 +41,28 @@ final class AppState {
             Task {
                 await self.handleRetry(requestId: requestId)
             }
+        }
+
+        // Setup callback for in-app permission resolution notifications
+        webSocketManager.onPermissionResolved = { [weak self] request, decision in
+            guard let self = self else { return }
+
+            let message: String
+            let isSuccess: Bool
+
+            switch decision {
+            case .allow:
+                message = "Request Allowed ✓"
+                isSuccess = true
+            case .deny:
+                message = "Request Denied ✗"
+                isSuccess = false
+            case .alwaysAllow:
+                message = "Always Allowed ✓✓"
+                isSuccess = true
+            }
+
+            self.toastManager.show(message, isSuccess: isSuccess)
         }
 
         Task {

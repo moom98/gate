@@ -18,6 +18,9 @@ final class WebSocketManager {
     private let config: BrokerConfig
     private weak var notificationManager: NotificationManager?
 
+    // Callback for permission resolution (for in-app notifications)
+    var onPermissionResolved: ((PermissionRequest, Decision) -> Void)?
+
     init(config: BrokerConfig, notificationManager: NotificationManager? = nil) {
         self.config = config
         self.notificationManager = notificationManager
@@ -116,6 +119,9 @@ final class WebSocketManager {
                     } else {
                         // Send completion notification for manual decisions
                         await notificationManager?.notifyPermissionResolved(request, decision: resolved.decision)
+
+                        // Trigger in-app notification callback
+                        onPermissionResolved?(request, resolved.decision)
                     }
                 }
 

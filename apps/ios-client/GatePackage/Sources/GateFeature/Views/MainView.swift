@@ -83,6 +83,7 @@ public struct MainView: View {
                     selectedPrompt = (id: requestId, text: rawPrompt)
                 }
             }
+            .toast(manager: appState.toastManager)
         }
     }
 
