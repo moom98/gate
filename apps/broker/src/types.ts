@@ -22,11 +22,12 @@ export interface PermissionRequest {
 }
 
 /**
- * Response to permission request
+ * Response to permission request (sent to adapter/Claude CLI)
+ * Note: "alwaysAllow" is treated as "allow" from adapter's perspective
  */
 export interface PermissionResponse {
-  /** Decision: allow, deny, or always allow */
-  decision: "allow" | "deny" | "alwaysAllow";
+  /** Decision: allow or deny */
+  decision: "allow" | "deny";
 }
 
 /**

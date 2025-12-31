@@ -30,17 +30,19 @@ export function postDecisions(
 
   // Handle "alwaysAllow" decision
   if (decision === "alwaysAllow") {
-    // Get the original request to create a rule
+    // Get the original request BEFORE resolving (to avoid race condition)
     const request = pendingRequests.get(id);
-    if (request) {
-      alwaysAllowRules.add(request);
-    }
 
     // Treat as "allow" for this specific request
     const resolved = pendingRequests.resolve(id, { decision: "allow" });
     if (!resolved) {
       console.warn(`[Broker] Decision for ${id} rejected (already resolved or not found)`);
       return res.status(409).json({ success: false });
+    }
+
+    // Add to always-allow rules AFTER successful resolution
+    if (request) {
+      alwaysAllowRules.add(request);
     }
 
     // Broadcast as "alwaysAllow" to inform clients

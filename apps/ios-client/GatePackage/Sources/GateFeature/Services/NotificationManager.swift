@@ -37,7 +37,7 @@ final class NotificationManager: NSObject, ObservableObject {
         }
     }
 
-    /// Setup notification categories with Allow/Deny/Always Allow actions
+    /// Setup notification categories with Allow/Always Allow/Deny actions
     private func setupNotificationCategories() {
         // Permission request category (Allow/Always Allow/Deny)
         let allowAction = UNNotificationAction(
