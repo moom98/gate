@@ -45,7 +45,7 @@ export function useWebSocket(url: string) {
   const isMountedRef = useRef(true);
   const removeTimeoutsRef = useRef<Set<NodeJS.Timeout>>(new Set());
   const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const IDLE_TIMEOUT_MS = 3000; // 3 seconds
+  const IDLE_TIMEOUT_MS = 10000; // 10 seconds
 
   // Reset idle timer
   const resetIdleTimer = (currentRequests: Map<string, PermissionRequest>) => {

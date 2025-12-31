@@ -7,7 +7,7 @@ const { randomUUID } = require('crypto');
 // Configuration from environment or fallback to settings file
 let BROKER_URL = process.env.GATE_BROKER_URL || 'http://localhost:3000';
 let BROKER_TOKEN = process.env.GATE_BROKER_TOKEN;
-const TIMEOUT_MS = 60000; // 60 seconds
+const TIMEOUT_MS = 120000; // 120 seconds
 
 // Fallback: Read from ~/.claude/settings.json if env vars not set
 if (!BROKER_TOKEN) {
@@ -142,7 +142,7 @@ process.stdin.on('end', async () => {
         command: getToolCommand(payload),
         rawPrompt: JSON.stringify(payload.tool_input, null, 2)
       },
-      timeoutSec: 60
+      timeoutSec: 120
     };
 
     console.error(`[Hook] Requesting permission: ${request.summary}`);

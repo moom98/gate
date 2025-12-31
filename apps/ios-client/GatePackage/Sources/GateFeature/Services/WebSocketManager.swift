@@ -18,7 +18,7 @@ final class WebSocketManager {
     private let config: BrokerConfig
     private weak var notificationManager: NotificationManager?
     private var idleTimer: Task<Void, Never>?
-    private let idleTimeoutSeconds: Double = 3.0
+    private let idleTimeoutSeconds: Double = 10.0
 
     init(config: BrokerConfig, notificationManager: NotificationManager? = nil) {
         self.config = config
