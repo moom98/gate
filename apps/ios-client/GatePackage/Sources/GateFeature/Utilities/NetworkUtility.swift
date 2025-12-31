@@ -3,12 +3,12 @@ import Network
 
 /// Utility for network-related operations
 enum NetworkUtility {
-    /// Get the WiFi IP address of the device
-    /// - Returns: WiFi IP address string, or nil if not available
+    /// Get the device's current WiFi IP address
+    /// Returns nil if no WiFi connection is available
     static func getWiFiIPAddress() -> String? {
         var address: String?
-
         var ifaddr: UnsafeMutablePointer<ifaddrs>?
+
         guard getifaddrs(&ifaddr) == 0 else { return nil }
         defer { freeifaddrs(ifaddr) }
 
@@ -17,50 +17,52 @@ enum NetworkUtility {
             defer { ptr = ptr?.pointee.ifa_next }
 
             guard let interface = ptr?.pointee else { continue }
+
+            // Check for IPv4 interface
             let addrFamily = interface.ifa_addr.pointee.sa_family
+            guard addrFamily == UInt8(AF_INET) else { continue }
 
-            // Check for IPv4
-            if addrFamily == UInt8(AF_INET) {
-                let name = String(cString: interface.ifa_name)
+            // Get interface name
+            let name = String(cString: interface.ifa_name)
 
-                // Check if this is a WiFi interface
-                if name == "en0" {
-                    var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
-                    getnameinfo(
-                        interface.ifa_addr,
-                        socklen_t(interface.ifa_addr.pointee.sa_len),
-                        &hostname,
-                        socklen_t(hostname.count),
-                        nil,
-                        socklen_t(0),
-                        NI_NUMERICHOST
-                    )
-                    // Find the null terminator and create string from UTF-8 bytes
-                    if let nullIndex = hostname.firstIndex(of: 0) {
-                        let utf8Data = hostname[0..<nullIndex].map { UInt8(bitPattern: $0) }
-                        address = String(decoding: utf8Data, as: UTF8.self)
-                    }
-                }
-            }
+            // We're looking for en0 (WiFi interface on iOS)
+            guard name == "en0" else { continue }
+
+            // Convert address to string
+            var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+            getnameinfo(
+                interface.ifa_addr,
+                socklen_t(interface.ifa_addr.pointee.sa_len),
+                &hostname,
+                socklen_t(hostname.count),
+                nil,
+                socklen_t(0),
+                NI_NUMERICHOST
+            )
+
+            address = String(cString: hostname)
         }
 
         return address
     }
 
-    /// Generate default broker URL based on WiFi gateway IP
-    /// - Returns: Default broker URL (e.g., "http://192.168.1.1:3000")
-    static func generateDefaultBrokerURL() -> String {
-        // Try to get WiFi IP address
-        if let wifiIP = getWiFiIPAddress() {
-            // Extract gateway IP (assume it's xxx.xxx.xxx.1)
-            let components = wifiIP.split(separator: ".")
-            if components.count == 4 {
-                let gatewayIP = "\(components[0]).\(components[1]).\(components[2]).1"
-                return "http://\(gatewayIP):3000"
-            }
+    /// Get default broker URL using WiFi IP address
+    /// Falls back to localhost if WiFi IP is not available
+    static func getDefaultBrokerURL() -> String {
+        guard let ipAddress = getWiFiIPAddress() else {
+            return "http://localhost:3000"
         }
 
-        // Fallback to localhost
-        return "http://localhost:3000"
+        // Try to construct gateway IP (usually .1 on the network)
+        let components = ipAddress.split(separator: ".")
+        guard components.count == 4 else {
+            // Fallback to device's own IP if parsing fails
+            return "http://\(ipAddress):3000"
+        }
+
+        // Replace last octet with 1 (common gateway address)
+        // e.g., 192.168.1.50 -> 192.168.1.1
+        let gatewayIP = "\(components[0]).\(components[1]).\(components[2]).1"
+        return "http://\(gatewayIP):3000"
     }
 }

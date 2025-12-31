@@ -14,6 +14,7 @@ final class WebSocketManager {
     private(set) var status: ConnectionStatus = .disconnected
     private(set) var pendingRequests: [PermissionRequest] = []
     private(set) var isClaudeIdle: Bool = false
+    private(set) var resolvedPermissions: [ResolvedPermission] = []
 
     private var webSocketTask: URLSessionWebSocketTask?
     private let config: BrokerConfig
@@ -64,6 +65,7 @@ final class WebSocketManager {
         status = .disconnected
         pendingRequests.removeAll()
         isClaudeIdle = false
+        resolvedPermissions.removeAll()
     }
 
     func dismissIdleState() {
@@ -117,10 +119,21 @@ final class WebSocketManager {
                     isClaudeIdle = false
                 }
             case .permissionResolved(let resolved):
-                // Only send timeout notifications, not completion notifications
                 if let request = pendingRequests.first(where: { $0.id == resolved.id }) {
                     if resolved.reason == "timeout" {
+                        // Send timeout notification
                         await notificationManager?.notifyTimeout(request)
+                    } else {
+                        // Send completion notification for manual decisions
+                        await notificationManager?.notifyPermissionResolved(request, decision: resolved.decision)
+
+                        // Add to resolved permissions list for in-app display
+                        let resolvedPermission = ResolvedPermission(
+                            id: resolved.id,
+                            request: request,
+                            decision: resolved.decision
+                        )
+                        resolvedPermissions.insert(resolvedPermission, at: 0) // Insert at top
                     }
                 }
 
@@ -142,5 +155,9 @@ final class WebSocketManager {
 
     func removeRequest(withId id: String) {
         pendingRequests.removeAll { $0.id == id }
+    }
+
+    func removeResolvedPermission(withId id: String) {
+        resolvedPermissions.removeAll { $0.id == id }
     }
 }

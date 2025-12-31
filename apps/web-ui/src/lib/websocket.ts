@@ -10,7 +10,7 @@ export type WSMessage =
   | { type: "permission_request"; payload: PermissionRequest }
   | {
       type: "permission_resolved";
-      payload: { id: string; decision: "allow" | "deny"; reason?: "timeout" | "manual" };
+      payload: { id: string; decision: "allow" | "deny" | "alwaysAllow"; reason?: "timeout" | "manual" };
     }
   | {
       type: "claude_idle_prompt";
@@ -30,6 +30,7 @@ export interface PermissionRequest {
   };
   timeoutSec?: number;
   isTimeout?: boolean;
+  allowAlwaysAllow?: boolean;
 }
 
 /**
@@ -96,7 +97,34 @@ export function useWebSocket(url: string) {
                 message.payload.reason || "none"
               );
 
-              // No completion toast notification for allow/deny
+              // Show completion toast notification (except for timeout)
+              if (message.payload.reason !== "timeout") {
+                setRequests((prev) => {
+                  const request = prev.get(message.payload.id);
+                  if (request) {
+                    const title =
+                      message.payload.decision === "allow"
+                        ? "Request Allowed ✓"
+                        : message.payload.decision === "alwaysAllow"
+                          ? "Always Allowed ✓✓"
+                          : "Request Denied ✗";
+
+                    // Use appropriate toast type based on decision
+                    const toastFn =
+                      message.payload.decision === "deny" ? toast.error : toast.success;
+
+                    toastFn(title, {
+                      description: request.summary.slice(0, 80),
+                      action: {
+                        label: "OK",
+                        onClick: () => {},
+                      },
+                      duration: 5000,
+                    });
+                  }
+                  return prev;
+                });
+              }
 
               // Handle timeout vs manual resolution
               if (message.payload.reason === "timeout") {

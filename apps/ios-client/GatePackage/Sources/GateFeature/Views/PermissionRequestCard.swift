@@ -16,10 +16,17 @@ struct PermissionRequestCard: View {
         var id: Self { self }
     }
 
+    // Truncate summary to 80 characters
+    private var truncatedSummary: String {
+        if request.summary.count <= 80 {
+            return request.summary
+        }
+        return String(request.summary.prefix(77)) + "..."
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Summary - always truncated to 2 lines
-            Text(request.summary)
+            Text(truncatedSummary)
                 .font(.headline)
                 .lineLimit(2)
 
@@ -58,26 +65,6 @@ struct PermissionRequestCard: View {
             HStack(spacing: 12) {
                 Button {
                     Task {
-                        await sendDecision(.deny)
-                    }
-                } label: {
-                    HStack {
-                        Spacer()
-                        if isSending {
-                            ProgressView()
-                                .progressViewStyle(.circular)
-                        } else {
-                            Text("Deny")
-                        }
-                        Spacer()
-                    }
-                }
-                .buttonStyle(.bordered)
-                .tint(.red)
-                .disabled(isSending)
-
-                Button {
-                    Task {
                         await sendDecision(.allow)
                     }
                 } label: {
@@ -88,12 +75,58 @@ struct PermissionRequestCard: View {
                                 .progressViewStyle(.circular)
                         } else {
                             Text("Allow")
+                                .font(.caption)
                         }
                         Spacer()
                     }
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.green)
+                .disabled(isSending)
+
+                // Show Always Allow button only if allowed
+                if request.allowAlwaysAllow == true {
+                    Button {
+                        Task {
+                            await sendDecision(.alwaysAllow)
+                        }
+                    } label: {
+                        HStack {
+                            Spacer()
+                            if isSending {
+                                ProgressView()
+                                    .progressViewStyle(.circular)
+                            } else {
+                                Text("Always Allow")
+                                    .font(.caption)
+                            }
+                            Spacer()
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.blue)
+                    .disabled(isSending)
+                }
+
+                Button {
+                    Task {
+                        await sendDecision(.deny)
+                    }
+                } label: {
+                    HStack {
+                        Spacer()
+                        if isSending {
+                            ProgressView()
+                                .progressViewStyle(.circular)
+                        } else {
+                            Text("Deny")
+                                .font(.caption)
+                        }
+                        Spacer()
+                    }
+                }
+                .buttonStyle(.bordered)
+                .tint(.red)
                 .disabled(isSending)
             }
         }
@@ -219,22 +252,6 @@ struct ExpandedTextView: View {
                     }
                 }
             }
-        }
-    }
-}
-
-struct InfoRow: View {
-    let label: String
-    let value: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(label)
-                .font(.caption)
-                .foregroundColor(.secondary)
-            Text(value)
-                .font(.body)
-                .textSelection(.enabled)
         }
     }
 }

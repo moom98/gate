@@ -31,7 +31,7 @@ export function PermissionRequestCard({ request, brokerUrl }: PermissionRequestC
     setExpandedFields(newExpanded);
   };
 
-  const handleDecision = async (decision: "allow" | "deny") => {
+  const handleDecision = async (decision: "allow" | "deny" | "alwaysAllow") => {
     setIsProcessing(true);
     setError(null);
 
@@ -184,19 +184,28 @@ export function PermissionRequestCard({ request, brokerUrl }: PermissionRequestC
         ) : (
           <>
             <Button
-              onClick={() => handleDecision("allow")}
-              disabled={isProcessing}
-              className="flex-1 bg-green-600 hover:bg-green-700"
-            >
-              {isProcessing ? "Sending..." : "Allow"}
-            </Button>
-            <Button
               onClick={() => handleDecision("deny")}
               disabled={isProcessing}
               variant="destructive"
               className="flex-1"
             >
               {isProcessing ? "Sending..." : "Deny"}
+            </Button>
+            {request.allowAlwaysAllow && (
+              <Button
+                onClick={() => handleDecision("alwaysAllow")}
+                disabled={isProcessing}
+                className="flex-1 bg-blue-600 hover:bg-blue-700"
+              >
+                {isProcessing ? "Sending..." : "Always Allow"}
+              </Button>
+            )}
+            <Button
+              onClick={() => handleDecision("allow")}
+              disabled={isProcessing}
+              className="flex-1 bg-green-600 hover:bg-green-700"
+            >
+              {isProcessing ? "Sending..." : "Allow"}
             </Button>
           </>
         )}

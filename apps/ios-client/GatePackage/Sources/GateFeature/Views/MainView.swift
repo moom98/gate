@@ -11,31 +11,73 @@ public struct MainView: View {
         @Bindable var appState = appState
 
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 16) {
-                    StatusBadge(status: appState.webSocketManager.status)
-                        .padding(.top)
+            List {
+                // Status badge section
+                Section {
+                    HStack {
+                        Spacer()
+                        StatusBadge(status: appState.webSocketManager.status)
+                        Spacer()
+                    }
+                }
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets())
 
-                    // Claude idle notification card
-                    if appState.webSocketManager.isClaudeIdle {
+                // Claude idle notification card
+                if appState.webSocketManager.isClaudeIdle {
+                    Section {
                         ClaudeIdleCard {
                             appState.webSocketManager.dismissIdleState()
                         }
-                        .padding(.top, 8)
                     }
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                }
 
-                    if appState.webSocketManager.pendingRequests.isEmpty {
-                        EmptyStateView()
-                    } else {
+                // Resolved permissions (completion notifications)
+                if !appState.webSocketManager.resolvedPermissions.isEmpty {
+                    Section {
+                        ForEach(appState.webSocketManager.resolvedPermissions) { resolved in
+                            ResolvedPermissionCard(resolvedPermission: resolved)
+                                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                        }
+                        .onDelete { indexSet in
+                            for index in indexSet {
+                                let resolved = appState.webSocketManager.resolvedPermissions[index]
+                                appState.webSocketManager.removeResolvedPermission(withId: resolved.id)
+                            }
+                        }
+                    } header: {
+                        Text("Completed")
+                    }
+                }
+
+                // Pending requests
+                if !appState.webSocketManager.pendingRequests.isEmpty {
+                    Section {
                         ForEach(appState.webSocketManager.pendingRequests) { request in
                             PermissionRequestCard(request: request) { decision in
                                 await handleDecision(requestId: request.id, decision: decision)
                             }
-                            .padding(.horizontal)
+                            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                        }
+                    } header: {
+                        if !appState.webSocketManager.resolvedPermissions.isEmpty {
+                            Text("Pending")
                         }
                     }
                 }
+
+                // Empty state
+                if appState.webSocketManager.pendingRequests.isEmpty && appState.webSocketManager.resolvedPermissions.isEmpty && !appState.webSocketManager.isClaudeIdle {
+                    Section {
+                        EmptyStateView()
+                    }
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets())
+                }
             }
+            .listStyle(.insetGrouped)
             .navigationTitle("Gate")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {

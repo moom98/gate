@@ -17,10 +17,13 @@ export interface PermissionRequest {
   };
   /** Timeout in seconds (default: 60) */
   timeoutSec?: number;
+  /** Whether "Always Allow" option should be available (default: false) */
+  allowAlwaysAllow?: boolean;
 }
 
 /**
- * Response to permission request
+ * Response to permission request (sent to adapter/Claude CLI)
+ * Note: "alwaysAllow" is treated as "allow" from adapter's perspective
  */
 export interface PermissionResponse {
   /** Decision: allow or deny */
@@ -33,8 +36,8 @@ export interface PermissionResponse {
 export interface DecisionPayload {
   /** Request ID to respond to */
   id: string;
-  /** Decision: allow or deny */
-  decision: "allow" | "deny";
+  /** Decision: allow, deny, or always allow */
+  decision: "allow" | "deny" | "alwaysAllow";
 }
 
 /**
@@ -43,8 +46,8 @@ export interface DecisionPayload {
 export interface PermissionResolved {
   /** Request ID that was resolved */
   id: string;
-  /** Decision: allow or deny */
-  decision: "allow" | "deny";
+  /** Decision: allow, deny, or always allow */
+  decision: "allow" | "deny" | "alwaysAllow";
   /** Reason for the decision (manual user action or automatic timeout) */
   reason?: "timeout" | "manual";
 }

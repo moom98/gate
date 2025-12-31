@@ -7,7 +7,7 @@ import { AuthStorage } from "./auth";
  */
 export interface DecisionPayload {
   id: string;
-  decision: "allow" | "deny";
+  decision: "allow" | "deny" | "alwaysAllow";
 }
 
 /**
@@ -38,7 +38,7 @@ export class BrokerAPI {
   /**
    * Send decision for a permission request
    */
-  async sendDecision(id: string, decision: "allow" | "deny"): Promise<DecisionResponse> {
+  async sendDecision(id: string, decision: "allow" | "deny" | "alwaysAllow"): Promise<DecisionResponse> {
     const payload: DecisionPayload = { id, decision };
     const token = AuthStorage.getToken();
 

@@ -17,13 +17,23 @@ final class AppState {
         let initialConfig = BrokerConfig()
         self.config = initialConfig
 
-        // Initialize notification manager first
+        // Initialize managers
         let notificationManager = NotificationManager()
         self.notificationManager = notificationManager
 
-        // Then initialize WebSocket manager with notification manager
+        // Initialize WebSocket manager with notification manager
         self.webSocketManager = WebSocketManager(config: initialConfig, notificationManager: notificationManager)
 
+        // Setup callbacks
+        setupCallbacks()
+
+        Task {
+            await loadSavedCredentials()
+        }
+    }
+
+    /// Setup all callbacks for notification and WebSocket managers
+    private func setupCallbacks() {
         // Setup callback for notification actions
         notificationManager.onDecisionMade = { [weak self] requestId, decision in
             guard let self = self else { return }
@@ -37,10 +47,6 @@ final class AppState {
             Task {
                 await self.handleRetry(requestId: requestId)
             }
-        }
-
-        Task {
-            await loadSavedCredentials()
         }
     }
 
@@ -102,6 +108,7 @@ final class AppState {
         await authStorage.saveBrokerURL(brokerURL)
 
         webSocketManager = WebSocketManager(config: config, notificationManager: notificationManager)
+        setupCallbacks() // Re-setup callbacks after creating new WebSocketManager
         webSocketManager.connect()
     }
 
