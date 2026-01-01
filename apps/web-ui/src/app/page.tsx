@@ -3,6 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PermissionRequestCard } from "@/components/permission-request-card";
+import { ClaudeIdleCard } from "@/components/claude-idle-card";
 import { useWebSocket } from "@/lib/websocket";
 import { AuthStorage } from "@/lib/auth";
 import { useRouter } from "next/navigation";
@@ -30,7 +31,7 @@ export default function Home() {
   }, [router]);
 
   const wsUrlWithToken = token ? `${WS_URL}?token=${encodeURIComponent(token)}` : "";
-  const { connectionState, requests } = useWebSocket(wsUrlWithToken);
+  const { connectionState, requests, claudeIdlePrompt, dismissClaudeIdlePrompt } = useWebSocket(wsUrlWithToken);
 
   const handleLogout = () => {
     AuthStorage.clearAuth();
@@ -96,6 +97,10 @@ export default function Home() {
             )}
           </CardContent>
         </Card>
+
+        {claudeIdlePrompt && (
+          <ClaudeIdleCard prompt={claudeIdlePrompt} onDismiss={dismissClaudeIdlePrompt} />
+        )}
 
         {/* Permission Requests */}
         <div className="space-y-4">
