@@ -1,5 +1,5 @@
 /**
- * Permission request from adapter to broker
+ * Permission request sent from a Claude Code hook or desktop client to the broker
  */
 export interface PermissionRequest {
   /** Unique request ID */
@@ -22,8 +22,8 @@ export interface PermissionRequest {
 }
 
 /**
- * Response to permission request (sent to adapter/Claude CLI)
- * Note: "alwaysAllow" is treated as "allow" from adapter's perspective
+ * Response to permission request (sent back to the calling hook/client)
+ * Note: "alwaysAllow" is treated as "allow" from the caller's perspective
  */
 export interface PermissionResponse {
   /** Decision: allow or deny */

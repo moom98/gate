@@ -101,28 +101,26 @@ The broker will start on `http://localhost:3000` and display a 6-digit pairing c
 └─────────────────────────────────────────┘
 ```
 
-#### Terminal 2: Start Web UI
+#### Terminal 2: Start Desktop UI (Electron)
 ```bash
 cd apps/web-ui
-pnpm dev
+pnpm electron:dev
 ```
-The web UI will be available at `http://localhost:3001`.
+This command spins up the Next.js dev server in the background and opens the Electron shell once the UI is ready. The authentication flow happens entirely inside the Electron window (you'll still be redirected to `/pair` the first time). Tokens remain stored in the window's localStorage, so future launches remember the pairing unless you log out.
 
-**First-time setup:**
+To build a standalone desktop app:
 
-1. Open `http://localhost:3001`
-2. You'll be redirected to `/pair` page
-3. Enter the 6-digit code from the broker console
-4. Click "Pair Device"
-5. You'll be redirected to the main dashboard
-
-The authentication token is stored in localStorage, so you won't need to pair again unless you clear browser data or logout.
+```bash
+cd apps/web-ui
+pnpm electron:build
+```
+This runs `next build` (configured for static export) and then packages the generated `out` directory with Electron via `electron-builder` (on macOS, make sure the Xcode command-line tools are installed).
 
 ### 4. Configure Claude Code Hooks
 
 **Getting your authentication token:**
 
-1. After pairing Web UI (step 3), open browser DevTools (F12)
+1. After pairing (step 3), open the Electron window's DevTools (⌥⌘I or View → Toggle Developer Tools)
 2. Go to Application > localStorage
 3. Copy the value of `token`
 
@@ -372,18 +370,14 @@ pnpm dev               # Start with tsx watch
 pnpm build             # Build TypeScript
 pnpm typecheck         # Type-check only
 
-# Adapter (DEPRECATED - Use Claude Code Hooks instead)
-cd apps/adapter-claude
-pnpm dev               # Start with tsx watch
-pnpm build             # Build TypeScript
-pnpm typecheck         # Type-check only
-
 # Web UI
 cd apps/web-ui
 pnpm dev               # Start Next.js dev server (port 3001)
-pnpm build             # Build production bundle
+pnpm build             # Build production bundle (static export)
 pnpm lint              # ESLint
 pnpm typecheck         # TypeScript check
+pnpm electron:dev      # Launch Electron shell (runs dev server + Electron)
+pnpm electron:build    # Build distributable desktop app
 ```
 
 ## Project Structure
@@ -401,15 +395,11 @@ gate/
 │   │   │   ├── app/         # App Router pages
 │   │   │   ├── components/  # React components
 │   │   │   └── lib/         # Utilities
+│   │   ├── electron/        # Electron main process files
 │   │   ├── package.json
 │   │   └── next.config.js
 │   ├── ios-client/          # SwiftUI iOS app (planned)
 │   │   └── README.md
-│   └── adapter-claude-legacy/  # DEPRECATED PTY wrapper (legacy)
-│       ├── src/
-│       │   └── index.ts
-│       ├── package.json
-│       └── tsconfig.json
 ├── .claude/
 │   ├── hooks/
 │   │   ├── pretooluse-gate.js        # Claude Code PreToolUse hook
@@ -435,13 +425,12 @@ gate/
 2. ✅ **Step 2**: Implement broker skeleton with basic HTTP endpoints
 3. ✅ **Step 3**: Add PTY wrapper to spawn Claude CLI
 4. ✅ **Step 4**: Add WebSocket support to broker
-5. ✅ **Step 5**: Implement pattern detection and y/n injection in adapter
-6. ✅ **Step 6**: Connect Web UI to broker via WebSocket
-7. ✅ **Step 7**: Add token-based authentication
+5. ✅ **Step 5**: Connect Web UI to broker via WebSocket
+6. ✅ **Step 6**: Add token-based authentication
 
 🚧 **In Progress:**
 
-- **Step 8**: Build minimal iOS client (SwiftUI scaffolding available, Xcode project setup required)
+- **Step 7**: Build minimal iOS client (SwiftUI scaffolding available, Xcode project setup required)
 
 ## Configuration
 
@@ -450,11 +439,6 @@ Configuration will be handled via environment variables:
 **Broker** (`apps/broker/.env`):
 - `PORT` - HTTP server port (default: 3000)
 - `WS_PATH` - WebSocket endpoint path (default: /ws)
-
-**Adapter (DEPRECATED)** (`apps/adapter-claude/.env`):
-- `BROKER_URL` - Broker HTTP URL (default: http://localhost:3000)
-- `BROKER_TOKEN` - Authentication token (required after step 7)
-- `CLAUDE_COMMAND` - Claude CLI command (default: claude)
 
 **Web UI** (`apps/web-ui/.env.local`):
 - `NEXT_PUBLIC_BROKER_URL` - Broker HTTP URL
@@ -489,7 +473,7 @@ CI uses:
 **Security Best Practices:**
 
 - Run broker on localhost or trusted LAN only
-- Store tokens in environment variables (adapter) or localStorage (web-ui)
+- Store tokens in environment variables (hooks/desktop scripts) or localStorage (desktop UI)
 - Never commit `.env` files or tokens to version control
 - Monitor broker logs for suspicious activity
 - Regenerate pairing codes regularly in production
@@ -522,9 +506,7 @@ See [AGENTS.md](AGENTS.md#5-security-considerations) for detailed security docum
 Each major feature is developed in its own branch:
 - `feat/000-bootstrap` - Initial project setup (current)
 - `feat/010-broker-skeleton` - HTTP API endpoints
-- `feat/020-adapter-pty` - PTY manager
 - `feat/030-broker-ws` - WebSocket integration
-- `feat/040-adapter-detect-inject` - Pattern detection and injection
 - `feat/050-web-ui-integrate` - Web UI integration
 - `feat/060-token-pairing` - Authentication
 - `feat/070-ios-minimal` - iOS client

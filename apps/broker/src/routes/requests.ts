@@ -5,7 +5,7 @@ import { wsManager } from "../websocket";
 
 /**
  * POST /v1/requests
- * Receive permission request from adapter
+ * Receive permission request from Claude Code hooks / desktop clients
  *
  * Creates pending request, broadcasts to WebSocket clients, waits for decision
  */
@@ -44,7 +44,7 @@ export async function postRequests(
     // Wait for decision (will timeout after timeoutSec)
     const decision = await decisionPromise;
 
-    // Return decision to adapter
+    // Return decision to caller (hook or desktop client)
     res.json(decision);
   } catch (error) {
     console.error("[Broker] Error while waiting for permission decision:", error);

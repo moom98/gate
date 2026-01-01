@@ -9,6 +9,7 @@ build/
 .next/
 out/
 *.tsbuildinfo
+apps/web-ui/dist-electron/
 
 # Logs
 logs

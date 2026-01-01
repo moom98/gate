@@ -33,7 +33,7 @@ Gate is a permission gateway system that intercepts Claude Code CLI tool executi
 # Install all dependencies
 pnpm install
 
-# Build all packages (broker, web-ui only - adapter-claude-legacy excluded)
+# Build all packages (broker and web-ui)
 pnpm -r build
 
 # Run linting across all packages
@@ -60,9 +60,11 @@ pnpm typecheck    # Type-check without emitting
 # Web UI (apps/web-ui)
 cd apps/web-ui
 pnpm dev          # Start Next.js dev server (port 3001)
-pnpm build        # Build production Next.js app
+pnpm build        # Build production Next.js app (static export)
 pnpm lint         # ESLint
 pnpm typecheck    # TypeScript check
+pnpm electron:dev # Launch Electron shell (spawns dev server + Electron)
+pnpm electron:build # Package Electron app via electron-builder
 ```
 
 **Hook setup:**
@@ -196,20 +198,19 @@ git checkout -b feat/002-feature-b
    # Expected: {"status":"ok","timestamp":"...","version":"0.0.1"}
    ```
 
-2. **Pairing Flow:**
+2. **Pairing Flow (Electron):**
    ```bash
    # Terminal 1: Start broker
    cd apps/broker && pnpm dev
    # Note the 6-digit pairing code from console
 
-   # Terminal 2: Start web-ui
-   cd apps/web-ui && pnpm dev
+   # Terminal 2: Start desktop shell (spawns dev server + Electron)
+   cd apps/web-ui && pnpm electron:dev
 
-   # Browser: Open http://localhost:3001
-   # Expected: Redirected to /pair
-   # Enter pairing code
-   # Expected: Redirected to home, "● Connected" badge
-   # Expected: Token stored in localStorage
+   # Expected: Electron window opens and redirects to /pair
+   # Enter pairing code from broker output
+   # Expected: Redirected to dashboard, status badge shows "● Connected"
+   # Expected: Token stored in the Electron window's localStorage
    ```
 
 3. **Hook Script Validation:**
@@ -237,9 +238,9 @@ git checkout -b feat/002-feature-b
    # Terminal 1: Start broker
    cd apps/broker && pnpm dev
 
-   # Terminal 2: Start web-ui and pair
-   cd apps/web-ui && pnpm dev
-   # Pair and get token
+   # Terminal 2: Start Electron shell and pair
+   cd apps/web-ui && pnpm electron:dev
+   # Pair inside the Electron window and get token via DevTools localStorage
 
    # Terminal 3: Configure hooks
    cp .claude/settings.json.example .claude/settings.json
