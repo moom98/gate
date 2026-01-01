@@ -118,6 +118,19 @@ The web UI will be available at `http://localhost:3001`.
 
 The authentication token is stored in localStorage, so you won't need to pair again unless you clear browser data or logout.
 
+#### Optional: Run the Desktop UI with Electron
+```bash
+cd apps/web-ui
+pnpm electron:dev
+```
+This launches the same dashboard inside an Electron shell (the script starts the Next.js dev server and waits for it to become available before opening Electron). To build a distributable desktop app, run:
+
+```bash
+cd apps/web-ui
+pnpm electron:build
+```
+This command runs `next build && next export`, then packages the exported static assets with Electron via `electron-builder` (macOS requires Xcode command-line tools and a Rust-free Node toolchain).
+
 ### 4. Configure Claude Code Hooks
 
 **Getting your authentication token:**
@@ -382,8 +395,11 @@ pnpm typecheck         # Type-check only
 cd apps/web-ui
 pnpm dev               # Start Next.js dev server (port 3001)
 pnpm build             # Build production bundle
+pnpm export            # Generate static export for Electron packaging
 pnpm lint              # ESLint
 pnpm typecheck         # TypeScript check
+pnpm electron:dev      # Launch Electron shell (runs dev server + Electron)
+pnpm electron:build    # Build distributable desktop app
 ```
 
 ## Project Structure
@@ -401,6 +417,7 @@ gate/
 │   │   │   ├── app/         # App Router pages
 │   │   │   ├── components/  # React components
 │   │   │   └── lib/         # Utilities
+│   │   ├── electron/        # Electron main process files
 │   │   ├── package.json
 │   │   └── next.config.js
 │   ├── ios-client/          # SwiftUI iOS app (planned)

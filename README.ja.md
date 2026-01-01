@@ -122,6 +122,22 @@ Web UIは`http://localhost:3001`で利用可能になります。
 
 認証トークンはlocalStorageに保存されるため、ブラウザデータをクリアまたはログアウトしない限り、再度ペアリングする必要はありません。
 
+#### オプション: ElectronでデスクトップUIを起動
+
+```bash
+cd apps/web-ui
+pnpm electron:dev
+```
+
+同じダッシュボードをElectronのウィンドウ内で表示します（Next.js開発サーバーを起動してからElectronを立ち上げます）。配布用アプリを作成する場合は次を実行してください:
+
+```bash
+cd apps/web-ui
+pnpm electron:build
+```
+
+`next build && next export`を実行したあと、`electron-builder`でパッケージ化します（macOSではXcodeコマンドラインツールが必要）。
+
 ### 4. Claude Code Hooksの設定
 
 **認証トークンの取得:**
@@ -222,8 +238,11 @@ pnpm typecheck         # 型チェックのみ
 cd apps/web-ui
 pnpm dev               # Next.js開発サーバーを起動（ポート3001）
 pnpm build             # 本番用バンドルをビルド
+pnpm export            # Electron用に静的エクスポートを生成
 pnpm lint              # ESLint
 pnpm typecheck         # TypeScript型チェック
+pnpm electron:dev      # Electronデスクトップアプリを開発モードで起動
+pnpm electron:build    # デスクトップバイナリをビルド
 ```
 
 ## プロジェクト構造
@@ -241,6 +260,7 @@ gate/
 │   │   │   ├── app/         # App Routerページ
 │   │   │   ├── components/  # Reactコンポーネント
 │   │   │   └── lib/         # ユーティリティ
+│   │   ├── electron/        # Electronメインプロセス
 │   │   ├── package.json
 │   │   └── next.config.js
 │   ├── ios-client/          # SwiftUI iOSアプリ（予定）
