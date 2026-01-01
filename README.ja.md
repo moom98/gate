@@ -119,7 +119,7 @@ cd apps/web-ui
 pnpm electron:build
 ```
 
-`next build && next export`を実行した後に`electron-builder`でパッケージ化します（macOSではXcodeコマンドラインツールが必要です）。
+`next build`（static exportモード）を実行したあとに`electron-builder`でパッケージ化します（macOSではXcodeコマンドラインツールをインストールしてください）。
 
 ### 4. Claude Code Hooksの設定
 
@@ -220,8 +220,7 @@ pnpm typecheck         # 型チェックのみ
 # Web UI
 cd apps/web-ui
 pnpm dev               # Next.js開発サーバーを起動（ポート3001）
-pnpm build             # 本番用バンドルをビルド
-pnpm export            # Electron用に静的エクスポートを生成
+pnpm build             # 本番用バンドルをビルド（static export）
 pnpm lint              # ESLint
 pnpm typecheck         # TypeScript型チェック
 pnpm electron:dev      # Electronデスクトップアプリを開発モードで起動

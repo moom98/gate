@@ -114,7 +114,7 @@ To build a standalone desktop app:
 cd apps/web-ui
 pnpm electron:build
 ```
-This runs `next build && next export`, then packages the static output with Electron via `electron-builder` (macOS requires the Xcode command-line tools).
+This runs `next build` (configured for static export) and then packages the generated `out` directory with Electron via `electron-builder` (on macOS, make sure the Xcode command-line tools are installed).
 
 ### 4. Configure Claude Code Hooks
 
@@ -379,8 +379,7 @@ pnpm typecheck         # Type-check only
 # Web UI
 cd apps/web-ui
 pnpm dev               # Start Next.js dev server (port 3001)
-pnpm build             # Build production bundle
-pnpm export            # Generate static export for Electron packaging
+pnpm build             # Build production bundle (static export)
 pnpm lint              # ESLint
 pnpm typecheck         # TypeScript check
 pnpm electron:dev      # Launch Electron shell (runs dev server + Electron)

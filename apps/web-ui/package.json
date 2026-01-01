@@ -7,13 +7,12 @@
     "dev": "next dev -p 3001",
     "build": "next build",
     "start": "next start -p 3001",
-    "export": "next export",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.{ts,tsx,json,css,md}\"",
     "electron:serve": "wait-on http://localhost:3001 && electron electron/main.js",
     "electron:dev": "cross-env NODE_ENV=development concurrently \"pnpm dev\" \"pnpm electron:serve\"",
-    "electron:build": "cross-env NODE_ENV=production pnpm build && pnpm export && electron-builder"
+    "electron:build": "cross-env NODE_ENV=production node electron/scripts/build-electron.js"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.0",
@@ -53,8 +52,7 @@
       "electron/**/*",
       "out/**/*",
       "package.json",
-      "next.config.js",
-      "node_modules/**/*"
+      "next.config.js"
     ],
     "mac": {
       "category": "public.app-category.developer-tools"

@@ -60,8 +60,7 @@ pnpm typecheck    # Type-check without emitting
 # Web UI (apps/web-ui)
 cd apps/web-ui
 pnpm dev          # Start Next.js dev server (port 3001)
-pnpm build        # Build production Next.js app
-pnpm export       # Generate static export for Electron
+pnpm build        # Build production Next.js app (static export)
 pnpm lint         # ESLint
 pnpm typecheck    # TypeScript check
 pnpm electron:dev # Launch Electron shell (spawns dev server + Electron)
