@@ -37,14 +37,16 @@ enum NetworkUtility {
             // Use inet_ntop() to convert sockaddr_in to IP address string
             // This is the most reliable method that handles byte order correctly
             var addrBuffer = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
-            var sinAddr: in_addr = interface.ifa_addr.withMemoryRebound(to: sockaddr_in.self, capacity: 1) { $0.pointee.sin_addr }
+            let result = interface.ifa_addr.withMemoryRebound(to: sockaddr_in.self, capacity: 1) { sockAddrInPtr in
+                inet_ntop(
+                    AF_INET,
+                    &sockAddrInPtr.pointee.sin_addr,
+                    &addrBuffer,
+                    socklen_t(INET_ADDRSTRLEN)
+                )
+            }
             
-            guard inet_ntop(
-                AF_INET,
-                &sinAddr,
-                &addrBuffer,
-                socklen_t(INET_ADDRSTRLEN)
-            ) != nil else {
+            guard result != nil else {
                 continue
             }
             
@@ -56,7 +58,7 @@ enum NetworkUtility {
 
     /// Get default broker URL using WiFi IP address
     /// Falls back to localhost if WiFi IP is not available
-    /// Note: Returns the device's own IP address, assuming the broker runs on the same network
+    /// Note: Returns the device's own IP address, assuming the broker runs on the same device
     static func getDefaultBrokerURL() -> String {
         guard let ipAddress = getWiFiIPAddress() else {
             return "http://localhost:3000"
