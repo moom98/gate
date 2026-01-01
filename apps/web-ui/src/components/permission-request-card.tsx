@@ -96,6 +96,7 @@ export function PermissionRequestCard({ request, brokerUrl }: PermissionRequestC
               size="sm"
               onClick={() => toggleField("command")}
               className="h-6 text-xs p-1"
+              aria-label={expandedFields.has("command") ? "Collapse command" : "Expand command"}
             >
               {expandedFields.has("command") ? (
                 <ChevronUp className="h-3 w-3" />
@@ -121,6 +122,7 @@ export function PermissionRequestCard({ request, brokerUrl }: PermissionRequestC
               size="sm"
               onClick={() => toggleField("directory")}
               className="h-6 text-xs p-1"
+              aria-label={expandedFields.has("directory") ? "Collapse directory" : "Expand directory"}
             >
               {expandedFields.has("directory") ? (
                 <ChevronUp className="h-3 w-3" />
@@ -146,6 +148,7 @@ export function PermissionRequestCard({ request, brokerUrl }: PermissionRequestC
               size="sm"
               onClick={() => toggleField("prompt")}
               className="h-6 text-xs p-1"
+              aria-label={expandedFields.has("prompt") ? "Collapse prompt" : "Expand prompt"}
             >
               {expandedFields.has("prompt") ? (
                 <ChevronUp className="h-3 w-3" />

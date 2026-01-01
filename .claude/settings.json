@@ -10,7 +10,7 @@
             "timeout": 65000,
             "env": {
               "GATE_BROKER_URL": "http://localhost:3000",
-              "GATE_BROKER_TOKEN": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjbGllbnRJZCI6ImQ4YWUyNDEzLWEwN2ItNGM1ZS04NDA1LWUzOWYyZTIzZTQxYSIsImlhdCI6MTc2NzEwMDAwNCwiZXhwIjoxNzY5NjkyMDA0fQ.jXgp1cYsPTRPDSra8CCWNR-4liGafzbezKeTWNWlGzo"
+              "GATE_BROKER_TOKEN": "{{REPLACE_WITH_YOUR_TOKEN}}"
             }
           }
         ]
@@ -24,7 +24,7 @@
             "timeout": 65000,
             "env": {
               "GATE_BROKER_URL": "http://localhost:3000",
-              "GATE_BROKER_TOKEN": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjbGllbnRJZCI6ImQ4YWUyNDEzLWEwN2ItNGM1ZS04NDA1LWUzOWYyZTIzZTQxYSIsImlhdCI6MTc2NzEwMDAwNCwiZXhwIjoxNzY5NjkyMDA0fQ.jXgp1cYsPTRPDSra8CCWNR-4liGafzbezKeTWNWlGzo"
+              "GATE_BROKER_TOKEN": "{{REPLACE_WITH_YOUR_TOKEN}}"
             }
           }
         ]
@@ -38,7 +38,7 @@
             "timeout": 65000,
             "env": {
               "GATE_BROKER_URL": "http://localhost:3000",
-              "GATE_BROKER_TOKEN": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjbGllbnRJZCI6ImQ4YWUyNDEzLWEwN2ItNGM1ZS04NDA1LWUzOWYyZTIzZTQxYSIsImlhdCI6MTc2NzEwMDAwNCwiZXhwIjoxNzY5NjkyMDA0fQ.jXgp1cYsPTRPDSra8CCWNR-4liGafzbezKeTWNWlGzo"
+              "GATE_BROKER_TOKEN": "{{REPLACE_WITH_YOUR_TOKEN}}"
             }
           }
         ]
@@ -52,7 +52,7 @@
             "timeout": 65000,
             "env": {
               "GATE_BROKER_URL": "http://localhost:3000",
-              "GATE_BROKER_TOKEN": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjbGllbnRJZCI6ImQ4YWUyNDEzLWEwN2ItNGM1ZS04NDA1LWUzOWYyZTIzZTQxYSIsImlhdCI6MTc2NzEwMDAwNCwiZXhwIjoxNzY5NjkyMDA0fQ.jXgp1cYsPTRPDSra8CCWNR-4liGafzbezKeTWNWlGzo"
+              "GATE_BROKER_TOKEN": "{{REPLACE_WITH_YOUR_TOKEN}}"
             }
           }
         ]
@@ -68,7 +68,7 @@
             "timeout": 10000,
             "env": {
               "GATE_BROKER_URL": "http://localhost:3000",
-              "GATE_BROKER_TOKEN": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjbGllbnRJZCI6ImQ4YWUyNDEzLWEwN2ItNGM1ZS04NDA1LWUzOWYyZTIzZTQxYSIsImlhdCI6MTc2NzEwMDAwNCwiZXhwIjoxNzY5NjkyMDA0fQ.jXgp1cYsPTRPDSra8CCWNR-4liGafzbezKeTWNWlGzo"
+              "GATE_BROKER_TOKEN": "{{REPLACE_WITH_YOUR_TOKEN}}"
             }
           }
         ]
