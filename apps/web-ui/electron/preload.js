@@ -15,7 +15,8 @@ contextBridge.exposeInMainWorld("gateDesktop", {
         Object.prototype.hasOwnProperty.call(data, "requestId") &&
         Object.prototype.hasOwnProperty.call(data, "decision") &&
         typeof data.requestId === "string" &&
-        (data.decision === "allow" || data.decision === "deny")
+        (data.decision === "allow" || data.decision === "deny") &&
+        Object.keys(data).every((key) => key === "requestId" || key === "decision")
       ) {
         callback({ requestId: data.requestId, decision: data.decision });
       }
