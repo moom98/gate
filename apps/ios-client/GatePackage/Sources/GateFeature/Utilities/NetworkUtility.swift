@@ -32,8 +32,13 @@ enum NetworkUtility {
 
     /// Get default broker URL using WiFi IP address
     /// Falls back to localhost if WiFi IP is not available
-    /// Note: Returns the device's own IP address, assuming the broker runs on the same device
-    /// The broker currently exposes HTTP only for trusted local development networks
+    ///
+    /// - Note: Returns the device's own IP address, assuming the broker runs on the same device.
+    ///
+    /// - Warning: Uses plain HTTP for local development only. This means pairing codes and tokens
+    ///   are transmitted in plaintext over the network. Only use this on trusted local networks
+    ///   (e.g., your home WiFi). For production use, the broker should implement HTTPS with proper
+    ///   certificate validation. Users can manually edit the URL in the pairing screen if needed.
     static func getDefaultBrokerURL(
         ipAddressProvider: () -> String? = NetworkUtility.getWiFiIPAddress
     ) -> String {
