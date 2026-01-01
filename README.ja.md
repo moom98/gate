@@ -122,6 +122,15 @@ Web UIは`http://localhost:3001`で利用可能になります。
 
 認証トークンはlocalStorageに保存されるため、ブラウザデータをクリアまたはログアウトしない限り、再度ペアリングする必要はありません。
 
+#### オプション: TauriでデスクトップUIを起動
+
+```bash
+cd apps/web-ui
+pnpm tauri dev
+```
+
+同じ画面をネイティブウィンドウで表示します。`pnpm tauri dev`はNext.js開発サーバーを自動で起動し、そのURLをTauriウィンドウに読み込みます。配布用バイナリを作成する場合は `pnpm tauri build` を使用してください（macOSではXcodeコマンドラインツールとRustツールチェーンが必要です）。
+
 ### 4. Claude Code Hooksの設定
 
 **認証トークンの取得:**
@@ -222,8 +231,11 @@ pnpm typecheck         # 型チェックのみ
 cd apps/web-ui
 pnpm dev               # Next.js開発サーバーを起動（ポート3001）
 pnpm build             # 本番用バンドルをビルド
+pnpm export            # 静的エクスポート（Tauriが利用）
 pnpm lint              # ESLint
 pnpm typecheck         # TypeScript型チェック
+pnpm tauri dev         # Tauriデスクトップアプリを起動（Rustツールチェーンが必要）
+pnpm tauri build       # デスクトップバイナリをビルド
 ```
 
 ## プロジェクト構造
@@ -241,6 +253,7 @@ gate/
 │   │   │   ├── app/         # App Routerページ
 │   │   │   ├── components/  # Reactコンポーネント
 │   │   │   └── lib/         # ユーティリティ
+│   │   ├── src-tauri/       # Tauriデスクトップシェル（Rust）
 │   │   ├── package.json
 │   │   └── next.config.js
 │   ├── ios-client/          # SwiftUI iOSアプリ（予定）

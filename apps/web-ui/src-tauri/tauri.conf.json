@@ -1,0 +1,41 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Gate Desktop",
+  "version": "0.0.1",
+  "identifier": "app.gate.desktop",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "beforeBuildCommand": "pnpm build && pnpm export",
+    "devPath": "http://localhost:3001",
+    "distDir": "../out"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Gate Desktop",
+        "width": 1280,
+        "height": 800,
+        "resizable": true,
+        "decorations": true
+      }
+    ]
+  },
+  "tauri": {
+    "allowlist": {
+      "all": false,
+      "shell": {
+        "all": false,
+        "open": true
+      }
+    },
+    "bundle": {
+      "active": true,
+      "targets": "all",
+      "identifier": "app.gate.desktop"
+    },
+    "security": {
+      "csp": null
+    }
+  }
+}

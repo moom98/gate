@@ -1,0 +1,15 @@
+[package]
+name = "gate_web_ui"
+description = "Gate desktop shell powered by Tauri"
+version = "0.1.0"
+edition = "2021"
+authors = ["Gate Contributors"]
+license = "MIT"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri = { version = "1", features = ["shell-open"] }
+
+[build-dependencies]
+tauri-build = { version = "1", features = [] }

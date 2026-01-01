@@ -118,6 +118,13 @@ The web UI will be available at `http://localhost:3001`.
 
 The authentication token is stored in localStorage, so you won't need to pair again unless you clear browser data or logout.
 
+#### Optional: Run the Desktop UI with Tauri
+```bash
+cd apps/web-ui
+pnpm tauri dev
+```
+This launches the same interface inside a native window. The command automatically starts `pnpm dev` for the frontend and opens the Tauri shell. Building a distributable desktop app is also available via `pnpm tauri build` (macOS requires the Xcode command-line tools and a Rust toolchain).
+
 ### 4. Configure Claude Code Hooks
 
 **Getting your authentication token:**
@@ -382,8 +389,11 @@ pnpm typecheck         # Type-check only
 cd apps/web-ui
 pnpm dev               # Start Next.js dev server (port 3001)
 pnpm build             # Build production bundle
+pnpm export            # Generate static export (used by Tauri)
 pnpm lint              # ESLint
 pnpm typecheck         # TypeScript check
+pnpm tauri dev         # Launch Tauri desktop shell (requires Rust toolchain)
+pnpm tauri build       # Build distributable desktop app
 ```
 
 ## Project Structure
@@ -401,6 +411,7 @@ gate/
 │   │   │   ├── app/         # App Router pages
 │   │   │   ├── components/  # React components
 │   │   │   └── lib/         # Utilities
+│   │   ├── src-tauri/       # Tauri desktop shell (Rust)
 │   │   ├── package.json
 │   │   └── next.config.js
 │   ├── ios-client/          # SwiftUI iOS app (planned)

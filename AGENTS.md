@@ -61,8 +61,11 @@ pnpm typecheck    # Type-check without emitting
 cd apps/web-ui
 pnpm dev          # Start Next.js dev server (port 3001)
 pnpm build        # Build production Next.js app
+pnpm export       # Generate static export (used by Tauri)
 pnpm lint         # ESLint
 pnpm typecheck    # TypeScript check
+pnpm tauri dev    # Launch the Tauri desktop shell
+pnpm tauri build  # Build the desktop bundle
 ```
 
 **Hook setup:**

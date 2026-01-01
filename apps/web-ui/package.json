@@ -6,9 +6,13 @@
     "dev": "next dev -p 3001",
     "build": "next build",
     "start": "next start -p 3001",
+    "export": "next export",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "format": "prettier --write \"src/**/*.{ts,tsx,json,css,md}\""
+    "format": "prettier --write \"src/**/*.{ts,tsx,json,css,md}\"",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.0",
@@ -21,6 +25,7 @@
     "tailwind-merge": "^2.2.1"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "^1.5.9",
     "@types/node": "^20.11.16",
     "@types/react": "^18.2.52",
     "@types/react-dom": "^18.2.18",
