@@ -1,6 +1,12 @@
 import Foundation
 import Network
 
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#endif
+
 /// Utility for network-related operations
 enum NetworkUtility {
     /// Get the device's current WiFi IP address
@@ -28,19 +34,21 @@ enum NetworkUtility {
             // We're looking for en0 (WiFi interface on iOS)
             guard name == "en0" else { continue }
 
-            // Convert address to string
-            var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
-            getnameinfo(
-                interface.ifa_addr,
-                socklen_t(interface.ifa_addr.pointee.sa_len),
-                &hostname,
-                socklen_t(hostname.count),
-                nil,
-                socklen_t(0),
-                NI_NUMERICHOST
-            )
-
-            address = String(cString: hostname)
+            // Use inet_ntop() to convert sockaddr_in to IP address string
+            // This is the most reliable method that handles byte order correctly
+            var addrBuffer = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
+            var sinAddr: in_addr = interface.ifa_addr.withMemoryRebound(to: sockaddr_in.self, capacity: 1) { $0.pointee.sin_addr }
+            
+            guard inet_ntop(
+                AF_INET,
+                &sinAddr,
+                &addrBuffer,
+                socklen_t(INET_ADDRSTRLEN)
+            ) != nil else {
+                continue
+            }
+            
+            address = String(cString: addrBuffer)
         }
 
         return address
@@ -48,21 +56,14 @@ enum NetworkUtility {
 
     /// Get default broker URL using WiFi IP address
     /// Falls back to localhost if WiFi IP is not available
+    /// Note: Returns the device's own IP address, assuming the broker runs on the same network
     static func getDefaultBrokerURL() -> String {
         guard let ipAddress = getWiFiIPAddress() else {
             return "http://localhost:3000"
         }
 
-        // Try to construct gateway IP (usually .1 on the network)
-        let components = ipAddress.split(separator: ".")
-        guard components.count == 4 else {
-            // Fallback to device's own IP if parsing fails
-            return "http://\(ipAddress):3000"
-        }
-
-        // Replace last octet with 1 (common gateway address)
-        // e.g., 192.168.1.50 -> 192.168.1.1
-        let gatewayIP = "\(components[0]).\(components[1]).\(components[2]).1"
-        return "http://\(gatewayIP):3000"
+        // Return the device's own IP address with broker port
+        // The user can manually edit this if the broker runs on a different machine
+        return "http://\(ipAddress):3000"
     }
 }
