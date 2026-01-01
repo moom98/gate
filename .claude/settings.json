@@ -7,7 +7,69 @@
           {
             "type": "command",
             "command": "/Users/ummy/project/source/gate/.claude/hooks/pretooluse-gate.js",
-            "timeout": 60000
+            "timeout": 65000,
+            "env": {
+              "GATE_BROKER_URL": "http://localhost:3000",
+              "GATE_BROKER_TOKEN": "{{REPLACE_WITH_YOUR_TOKEN}}"
+            }
+          }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/ummy/project/source/gate/.claude/hooks/pretooluse-gate.js",
+            "timeout": 65000,
+            "env": {
+              "GATE_BROKER_URL": "http://localhost:3000",
+              "GATE_BROKER_TOKEN": "{{REPLACE_WITH_YOUR_TOKEN}}"
+            }
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/ummy/project/source/gate/.claude/hooks/pretooluse-gate.js",
+            "timeout": 65000,
+            "env": {
+              "GATE_BROKER_URL": "http://localhost:3000",
+              "GATE_BROKER_TOKEN": "{{REPLACE_WITH_YOUR_TOKEN}}"
+            }
+          }
+        ]
+      },
+      {
+        "matcher": "NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/ummy/project/source/gate/.claude/hooks/pretooluse-gate.js",
+            "timeout": 65000,
+            "env": {
+              "GATE_BROKER_URL": "http://localhost:3000",
+              "GATE_BROKER_TOKEN": "{{REPLACE_WITH_YOUR_TOKEN}}"
+            }
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "idle_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/ummy/project/source/gate/.claude/hooks/notification-idle-prompt.js",
+            "timeout": 10000,
+            "env": {
+              "GATE_BROKER_URL": "http://localhost:3000",
+              "GATE_BROKER_TOKEN": "{{REPLACE_WITH_YOUR_TOKEN}}"
+            }
           }
         ]
       }

@@ -30,7 +30,7 @@ class PendingRequestStore {
       return Promise.resolve({ decision: "allow" });
     }
 
-    const timeoutSec = request.timeoutSec ?? 60;
+    const timeoutSec = request.timeoutSec ?? 120;
 
     let resolve: (decision: PermissionResponse) => void;
     let reject: (error: Error) => void;

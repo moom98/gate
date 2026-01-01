@@ -23,6 +23,17 @@ public struct MainView: View {
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets())
 
+                // Claude idle notification card
+                if appState.webSocketManager.isClaudeIdle {
+                    Section {
+                        ClaudeIdleCard {
+                            appState.webSocketManager.dismissIdleState()
+                        }
+                    }
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                }
+
                 // Resolved permissions (completion notifications)
                 if !appState.webSocketManager.resolvedPermissions.isEmpty {
                     Section {
@@ -58,7 +69,7 @@ public struct MainView: View {
                 }
 
                 // Empty state
-                if appState.webSocketManager.pendingRequests.isEmpty && appState.webSocketManager.resolvedPermissions.isEmpty {
+                if appState.webSocketManager.pendingRequests.isEmpty && appState.webSocketManager.resolvedPermissions.isEmpty && !appState.webSocketManager.isClaudeIdle {
                     Section {
                         EmptyStateView()
                     }
@@ -71,12 +82,6 @@ public struct MainView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
-                        Button("Test Notification") {
-                            Task {
-                                await testNotification()
-                            }
-                        }
-
                         Button("Notification Settings") {
                             showNotificationSettings = true
                         }
@@ -147,10 +152,6 @@ public struct MainView: View {
 
     private func logout() async {
         await appState.logout()
-    }
-
-    private func testNotification() async {
-        await appState.notificationManager.sendTestNotification()
     }
 }
 

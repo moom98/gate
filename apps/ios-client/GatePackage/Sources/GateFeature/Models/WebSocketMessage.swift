@@ -3,11 +3,18 @@ import Foundation
 enum WebSocketMessage: Codable, Sendable {
     case permissionRequest(PermissionRequest)
     case permissionResolved(PermissionResolved)
+    case claudeIdlePrompt(ClaudeIdlePrompt)
 
     struct PermissionResolved: Codable, Sendable {
         let id: String
         let decision: Decision
         let reason: String?
+    }
+
+    struct ClaudeIdlePrompt: Codable, Sendable {
+        let type: String
+        let ts: String
+        let project: String?
     }
 
     enum CodingKeys: String, CodingKey {
@@ -27,6 +34,10 @@ enum WebSocketMessage: Codable, Sendable {
         case "permission_resolved":
             let payload = try container.decode(PermissionResolved.self, forKey: .payload)
             self = .permissionResolved(payload)
+
+        case "claude_idle_prompt":
+            let payload = try container.decode(ClaudeIdlePrompt.self, forKey: .payload)
+            self = .claudeIdlePrompt(payload)
 
         default:
             throw DecodingError.dataCorruptedError(
@@ -48,6 +59,10 @@ enum WebSocketMessage: Codable, Sendable {
         case .permissionResolved(let resolved):
             try container.encode("permission_resolved", forKey: .type)
             try container.encode(resolved, forKey: .payload)
+
+        case .claudeIdlePrompt(let event):
+            try container.encode("claude_idle_prompt", forKey: .type)
+            try container.encode(event, forKey: .payload)
         }
     }
 }

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { PermissionRequest } from "@/lib/websocket";
 import { useState, useMemo } from "react";
 import { BrokerAPI } from "@/lib/api";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 interface PermissionRequestCardProps {
   request: PermissionRequest;
@@ -15,26 +16,20 @@ export function PermissionRequestCard({ request, brokerUrl }: PermissionRequestC
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resolved, setResolved] = useState(false);
-  const [isPromptExpanded, setIsPromptExpanded] = useState(false);
+  const [expandedFields, setExpandedFields] = useState<Set<string>>(new Set());
   const [retrySuccess, setRetrySuccess] = useState(false);
 
   const api = useMemo(() => new BrokerAPI(brokerUrl), [brokerUrl]);
 
-  // Truncate summary to 80 characters
-  const truncatedSummary = useMemo(() => {
-    if (request.summary.length <= 80) {
-      return request.summary;
+  const toggleField = (field: string) => {
+    const newExpanded = new Set(expandedFields);
+    if (newExpanded.has(field)) {
+      newExpanded.delete(field);
+    } else {
+      newExpanded.add(field);
     }
-    return request.summary.slice(0, 77) + "...";
-  }, [request.summary]);
-
-  // Truncate raw prompt to 100 characters when collapsed
-  const displayPrompt = useMemo(() => {
-    if (isPromptExpanded || request.details.rawPrompt.length <= 100) {
-      return request.details.rawPrompt;
-    }
-    return request.details.rawPrompt.slice(0, 97) + "...";
-  }, [request.details.rawPrompt, isPromptExpanded]);
+    setExpandedFields(newExpanded);
+  };
 
   const handleDecision = async (decision: "allow" | "deny" | "alwaysAllow") => {
     setIsProcessing(true);
@@ -85,39 +80,91 @@ export function PermissionRequestCard({ request, brokerUrl }: PermissionRequestC
   return (
     <Card className={borderColor}>
       <CardHeader>
-        <CardTitle>{truncatedSummary}</CardTitle>
+        <CardTitle className="line-clamp-2">{request.summary}</CardTitle>
         <CardDescription>
           Request ID: {request.id}
           {request.isTimeout && <span className="ml-2 text-orange-600 font-medium">(Timed Out)</span>}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">
+        {/* Command Field */}
         <div>
-          <p className="text-sm font-medium">Command:</p>
-          <p className="text-sm text-muted-foreground font-mono">{request.details.command}</p>
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-sm font-medium">Command:</p>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => toggleField("command")}
+              className="h-6 text-xs p-1"
+              aria-label={expandedFields.has("command") ? "Collapse command" : "Expand command"}
+            >
+              {expandedFields.has("command") ? (
+                <ChevronUp className="h-3 w-3" />
+              ) : (
+                <ChevronDown className="h-3 w-3" />
+              )}
+            </Button>
+          </div>
+          <p
+            className={`text-sm text-muted-foreground font-mono cursor-pointer ${expandedFields.has("command") ? "" : "line-clamp-2"}`}
+            onClick={() => toggleField("command")}
+          >
+            {request.details.command}
+          </p>
         </div>
+
+        {/* Working Directory Field */}
         <div>
-          <p className="text-sm font-medium">Working Directory:</p>
-          <p className="text-sm text-muted-foreground font-mono">{request.details.cwd}</p>
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-sm font-medium">Working Directory:</p>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => toggleField("directory")}
+              className="h-6 text-xs p-1"
+              aria-label={expandedFields.has("directory") ? "Collapse directory" : "Expand directory"}
+            >
+              {expandedFields.has("directory") ? (
+                <ChevronUp className="h-3 w-3" />
+              ) : (
+                <ChevronDown className="h-3 w-3" />
+              )}
+            </Button>
+          </div>
+          <p
+            className={`text-sm text-muted-foreground font-mono cursor-pointer ${expandedFields.has("directory") ? "" : "line-clamp-2"}`}
+            onClick={() => toggleField("directory")}
+          >
+            {request.details.cwd}
+          </p>
         </div>
+
+        {/* Prompt Field */}
         <div>
           <div className="flex items-center justify-between mb-1">
             <p className="text-sm font-medium">Prompt:</p>
-            {request.details.rawPrompt.length > 100 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsPromptExpanded(!isPromptExpanded)}
-                className="h-6 text-xs"
-              >
-                {isPromptExpanded ? "Show less" : "Show more"}
-              </Button>
-            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => toggleField("prompt")}
+              className="h-6 text-xs p-1"
+              aria-label={expandedFields.has("prompt") ? "Collapse prompt" : "Expand prompt"}
+            >
+              {expandedFields.has("prompt") ? (
+                <ChevronUp className="h-3 w-3" />
+              ) : (
+                <ChevronDown className="h-3 w-3" />
+              )}
+            </Button>
           </div>
-          <pre className="text-xs text-muted-foreground bg-muted p-2 rounded overflow-auto max-h-32">
-            {displayPrompt}
+          <pre
+            className={`text-xs text-muted-foreground bg-muted p-2 rounded overflow-auto cursor-pointer ${expandedFields.has("prompt") ? "max-h-96" : "line-clamp-2"}`}
+            onClick={() => toggleField("prompt")}
+          >
+            {request.details.rawPrompt}
           </pre>
         </div>
+
         {error && (
           <div className="text-sm text-red-500 bg-red-50 p-2 rounded">
             Error: {error}

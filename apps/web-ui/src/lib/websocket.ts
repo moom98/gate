@@ -11,6 +11,10 @@ export type WSMessage =
   | {
       type: "permission_resolved";
       payload: { id: string; decision: "allow" | "deny" | "alwaysAllow"; reason?: "timeout" | "manual" };
+    }
+  | {
+      type: "claude_idle_prompt";
+      payload: { type: string; ts: string; project?: string };
     };
 
 /**
@@ -134,19 +138,24 @@ export function useWebSocket(url: string) {
                   return next;
                 });
               } else {
-                // Remove resolved request after a delay to show the result
-                const timeoutId = setTimeout(() => {
-                  if (isMountedRef.current) {
-                    setRequests((prev) => {
-                      const next = new Map(prev);
-                      next.delete(message.payload.id);
-                      return next;
-                    });
-                  }
-                  removeTimeouts.delete(timeoutId);
-                }, 3000);
-                removeTimeouts.add(timeoutId);
+                // Remove resolved request immediately
+                setRequests((prev) => {
+                  const next = new Map(prev);
+                  next.delete(message.payload.id);
+                  return next;
+                });
               }
+            } else if (message.type === "claude_idle_prompt") {
+              console.log("[WebSocket] Claude idle prompt received");
+              // Show "Claude is Ready" notification
+              toast.success("Claude is Ready", {
+                description: "Waiting for your input",
+                action: {
+                  label: "OK",
+                  onClick: () => {},
+                },
+                duration: 5000,
+              });
             }
           } catch (error) {
             console.error("[WebSocket] Failed to parse message:", error);

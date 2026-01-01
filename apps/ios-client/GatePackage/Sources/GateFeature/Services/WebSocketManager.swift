@@ -13,6 +13,7 @@ enum ConnectionStatus {
 final class WebSocketManager {
     private(set) var status: ConnectionStatus = .disconnected
     private(set) var pendingRequests: [PermissionRequest] = []
+    private(set) var isClaudeIdle: Bool = false
     private(set) var resolvedPermissions: [ResolvedPermission] = []
 
     private var webSocketTask: URLSessionWebSocketTask?
@@ -63,6 +64,12 @@ final class WebSocketManager {
         webSocketTask = nil
         status = .disconnected
         pendingRequests.removeAll()
+        isClaudeIdle = false
+        resolvedPermissions.removeAll()
+    }
+
+    func dismissIdleState() {
+        isClaudeIdle = false
     }
 
     private func receiveMessages() async {
@@ -107,12 +114,14 @@ final class WebSocketManager {
 
                     // Send notification for new permission request
                     await notificationManager?.notifyPermissionRequest(request)
+
+                    // Clear idle state when new request arrives
+                    isClaudeIdle = false
                 }
             case .permissionResolved(let resolved):
-                // Send completion notification before removing request
                 if let request = pendingRequests.first(where: { $0.id == resolved.id }) {
-                    // Check if this was a timeout
                     if resolved.reason == "timeout" {
+                        // Send timeout notification
                         await notificationManager?.notifyTimeout(request)
                     } else {
                         // Send completion notification for manual decisions
@@ -132,6 +141,12 @@ final class WebSocketManager {
 
                 // Mark request as resolved in notification manager
                 await notificationManager?.markRequestResolved(resolved.id)
+            case .claudeIdlePrompt:
+                // Set idle state - will show card in UI
+                isClaudeIdle = true
+
+                // Also send notification (only shown when app is in background)
+                await notificationManager?.notifyClaudeReady()
             }
         } catch {
             print("Failed to decode WebSocket message: \(error)")

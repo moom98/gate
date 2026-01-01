@@ -73,6 +73,30 @@ chmod +x .claude/hooks/pretooluse-gate.js
 
 # Edit .claude/settings.json with your token and path
 # Get token from Web UI after pairing
+
+# Prevent accidentally committing your token to git
+git update-index --skip-worktree .claude/settings.json
+```
+
+**Managing Local Token Configuration:**
+
+If you need to update the settings.json template in the repository:
+
+```bash
+# 1. Temporarily allow tracking settings.json changes
+git update-index --no-skip-worktree .claude/settings.json
+
+# 2. Make your changes (replace real tokens with {{REPLACE_WITH_YOUR_TOKEN}})
+
+# 3. Commit the template changes
+git add .claude/settings.json
+git commit -m "docs: update settings.json template"
+
+# 4. Re-enable skip-worktree
+git update-index --skip-worktree .claude/settings.json
+
+# 5. Restore your local token
+# (edit .claude/settings.json to add your token back)
 ```
 
 ## 3. Coding Style Guidelines

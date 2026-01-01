@@ -64,3 +64,22 @@ struct ResolvedPermissionCard: View {
         )
     }
 }
+
+// Simple info row component for resolved permissions
+struct InfoRow: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label)
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            Text(value)
+                .font(.body)
+                .lineLimit(2)
+                .textSelection(.enabled)
+        }
+    }
+}
