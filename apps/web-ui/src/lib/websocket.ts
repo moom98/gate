@@ -94,7 +94,20 @@ export function useWebSocket(url: string) {
 
             if (message.type === "permission_request") {
               console.log("[WebSocket] Received permission request:", message.payload.id);
-              setRequests((prev) => new Map(prev).set(message.payload.id, message.payload));
+              setRequests((prev) => {
+                const next = new Map(prev);
+                const isNewRequest = !next.has(message.payload.id);
+                next.set(message.payload.id, message.payload);
+
+                if (isNewRequest) {
+                  sendDesktopNotification("新しい権限リクエスト", {
+                    body: message.payload.summary,
+                    tag: message.payload.id,
+                  });
+                }
+
+                return next;
+              });
               setClaudeIdlePrompt(null);
             } else if (message.type === "permission_resolved") {
               console.log(
@@ -127,6 +140,10 @@ export function useWebSocket(url: string) {
             } else if (message.type === "claude_idle_prompt") {
               console.log("[WebSocket] Claude idle prompt received");
               setClaudeIdlePrompt(message.payload);
+              sendDesktopNotification("Claude が待機中", {
+                body: message.payload.project ? `${message.payload.project} で入力待ちです` : "入力を待機しています",
+                tag: `claude-idle-${message.payload.ts}`,
+              });
             }
           } catch (error) {
             console.error("[WebSocket] Failed to parse message:", error);
@@ -200,4 +217,20 @@ export function useWebSocket(url: string) {
     claudeIdlePrompt,
     dismissClaudeIdlePrompt,
   };
+}
+
+function sendDesktopNotification(title: string, options?: NotificationOptions) {
+  if (typeof window === "undefined" || typeof Notification === "undefined") {
+    return;
+  }
+
+  if (Notification.permission !== "granted") {
+    return;
+  }
+
+  try {
+    new Notification(title, options);
+  } catch (error) {
+    console.error("[Notification] Failed to show notification:", error);
+  }
 }
