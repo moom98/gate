@@ -58,6 +58,7 @@ export default function Home() {
     }
   }, []);
 
+
   const apiClient = useMemo(() => new BrokerAPI(BROKER_URL), []);
   const requestsRef = useRef<PermissionRequest[]>([]);
 
@@ -69,6 +70,11 @@ export default function Home() {
     const unsubscribe = window.gateDesktop.onNotificationDecision(async ({ requestId, decision }) => {
       const requestExists = requestsRef.current.some((request) => request.id === requestId);
       if (!requestExists) {
+        console.warn(
+          "[Electron Notifications] Ignored decision for unknown request",
+          requestId,
+          decision
+        );
         return;
       }
 
@@ -82,7 +88,7 @@ export default function Home() {
     return () => {
       unsubscribe?.();
     };
-  }, [apiClient]);
+  }, [apiClient, requestsRef]);
 
   const wsUrlWithToken = token ? `${WS_URL}?token=${encodeURIComponent(token)}` : "";
   const { connectionState, requests, claudeIdlePrompt, dismissClaudeIdlePrompt } = useWebSocket(wsUrlWithToken);

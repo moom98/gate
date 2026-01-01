@@ -110,7 +110,7 @@ function handlePermissionNotification(event, payload) {
 
   const sender = event.sender;
 
-  notification.on("action", (_notificationEvent, index) => {
+  notification.on("action", (_event, index) => {
     const decision = index === 0 ? "allow" : "deny";
     sender.send("notifications:decision", {
       requestId: payload.requestId,
@@ -118,11 +118,15 @@ function handlePermissionNotification(event, payload) {
     });
   });
 
+  notification.on("close", () => {
+    notification.removeAllListeners();
+  });
+
   notification.show();
   return true;
 }
 
-function handleIdleNotification(payload) {
+function handleIdleNotification(_event, payload) {
   if (!Notification.isSupported()) {
     return false;
   }
@@ -146,9 +150,9 @@ ipcMain.handle("notifications:permission", (event, payload) => {
   }
 });
 
-ipcMain.handle("notifications:idle", (_event, payload) => {
+ipcMain.handle("notifications:idle", (event, payload) => {
   try {
-    return handleIdleNotification(payload);
+    return handleIdleNotification(event, payload);
   } catch (error) {
     console.error("[Electron] Failed to show idle notification:", error);
     return false;

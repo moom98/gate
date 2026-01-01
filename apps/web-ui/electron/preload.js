@@ -9,7 +9,14 @@ contextBridge.exposeInMainWorld("gateDesktop", {
     }
 
     const listener = (_event, data) => {
-      callback(data);
+      if (
+        data &&
+        typeof data === "object" &&
+        typeof data.requestId === "string" &&
+        (data.decision === "allow" || data.decision === "deny")
+      ) {
+        callback({ requestId: data.requestId, decision: data.decision });
+      }
     };
 
     ipcRenderer.on("notifications:decision", listener);
