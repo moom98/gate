@@ -6,6 +6,7 @@ import { postRequests } from "./routes/requests";
 import { postDecisions } from "./routes/decisions";
 import { postRetry } from "./routes/retry";
 import { postClaudeEvents } from "./routes/claude-events";
+import { postCodexEvents } from "./routes/codex-events";
 import { wsManager } from "./websocket";
 import { AuthService } from "./auth";
 import { PairingCodeStore } from "./pairing-codes";
@@ -51,6 +52,7 @@ app.post("/v1/requests", requireAuth(authService), postRequests);
 app.post("/v1/decisions", requireAuth(authService), postDecisions);
 app.post("/v1/requests/retry/:id", requireAuth(authService), postRetry);
 app.post("/v1/claude-events", requireAuth(authService), postClaudeEvents);
+app.post("/v1/codex-events", requireAuth(authService), postCodexEvents);
 
 // Error handling middleware (must come after all routes)
 app.use(
