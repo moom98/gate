@@ -103,46 +103,29 @@ Brokerは`http://localhost:3000`で起動し、6桁のペアリングコード�
 └─────────────────────────────────────────┘
 ```
 
-#### ターミナル2: Web UIの起動
-
-```bash
-cd apps/web-ui
-pnpm dev
-```
-
-Web UIは`http://localhost:3001`で利用可能になります。
-
-**初回セットアップ:**
-
-1. `http://localhost:3001`を開く
-2. `/pair`ページにリダイレクトされます
-3. Brokerコンソールに表示された6桁のコードを入力
-4. 「Pair Device」をクリック
-5. メインダッシュボードにリダイレクトされます
-
-認証トークンはlocalStorageに保存されるため、ブラウザデータをクリアまたはログアウトしない限り、再度ペアリングする必要はありません。
-
-#### オプション: ElectronでデスクトップUIを起動
+#### ターミナル2: デスクトップUI（Electron）の起動
 
 ```bash
 cd apps/web-ui
 pnpm electron:dev
 ```
 
-同じダッシュボードをElectronのウィンドウ内で表示します（Next.js開発サーバーを起動してからElectronを立ち上げます）。配布用アプリを作成する場合は次を実行してください:
+このコマンドはバックグラウンドでNext.js開発サーバーを立ち上げ、UIの読み込みを待ってからElectronウィンドウを表示します。初回はElectron内で `/pair` にリダイレクトされるので、Brokerに表示された6桁コードを入力してペアリングしてください。トークンはElectronウィンドウのlocalStorageに保存されるため、ログアウトしない限り再ペアリングは不要です。
+
+配布用アプリを生成する場合:
 
 ```bash
 cd apps/web-ui
 pnpm electron:build
 ```
 
-`next build && next export`を実行したあと、`electron-builder`でパッケージ化します（macOSではXcodeコマンドラインツールが必要）。
+`next build && next export`を実行した後に`electron-builder`でパッケージ化します（macOSではXcodeコマンドラインツールが必要です）。
 
 ### 4. Claude Code Hooksの設定
 
 **認証トークンの取得:**
 
-1. Web UIをペアリングした後（ステップ3）、ブラウザのDevToolsを開く（F12）
+1. ペアリング後（ステップ3）、ElectronウィンドウでDevToolsを開く（⌥⌘I または View → Toggle Developer Tools）
 2. Application > localStorageに移動
 3. `token`の値をコピー
 

@@ -101,41 +101,26 @@ The broker will start on `http://localhost:3000` and display a 6-digit pairing c
 └─────────────────────────────────────────┘
 ```
 
-#### Terminal 2: Start Web UI
-```bash
-cd apps/web-ui
-pnpm dev
-```
-The web UI will be available at `http://localhost:3001`.
-
-**First-time setup:**
-
-1. Open `http://localhost:3001`
-2. You'll be redirected to `/pair` page
-3. Enter the 6-digit code from the broker console
-4. Click "Pair Device"
-5. You'll be redirected to the main dashboard
-
-The authentication token is stored in localStorage, so you won't need to pair again unless you clear browser data or logout.
-
-#### Optional: Run the Desktop UI with Electron
+#### Terminal 2: Start Desktop UI (Electron)
 ```bash
 cd apps/web-ui
 pnpm electron:dev
 ```
-This launches the same dashboard inside an Electron shell (the script starts the Next.js dev server and waits for it to become available before opening Electron). To build a distributable desktop app, run:
+This command spins up the Next.js dev server in the background and opens the Electron shell once the UI is ready. The authentication flow happens entirely inside the Electron window (you'll still be redirected to `/pair` the first time). Tokens remain stored in the window's localStorage, so future launches remember the pairing unless you log out.
+
+To build a standalone desktop app:
 
 ```bash
 cd apps/web-ui
 pnpm electron:build
 ```
-This command runs `next build && next export`, then packages the exported static assets with Electron via `electron-builder` (macOS requires Xcode command-line tools and a Rust-free Node toolchain).
+This runs `next build && next export`, then packages the static output with Electron via `electron-builder` (macOS requires the Xcode command-line tools).
 
 ### 4. Configure Claude Code Hooks
 
 **Getting your authentication token:**
 
-1. After pairing Web UI (step 3), open browser DevTools (F12)
+1. After pairing (step 3), open the Electron window's DevTools (⌥⌘I or View → Toggle Developer Tools)
 2. Go to Application > localStorage
 3. Copy the value of `token`
 
