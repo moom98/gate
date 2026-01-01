@@ -231,7 +231,7 @@ async function notifyPermissionRequest(request: PermissionRequest) {
     }
   }
 
-  showBrowserNotification("新しい権限リクエスト", {
+  showBrowserNotification("Permission Request", {
     body: request.summary,
     tag: request.id,
   });
@@ -249,8 +249,8 @@ async function notifyClaudeIdlePrompt(prompt: ClaudeIdlePrompt) {
     }
   }
 
-  showBrowserNotification("Claude が待機中", {
-    body: prompt.project ? `${prompt.project} で入力待ちです` : "入力を待機しています",
+  showBrowserNotification("Claude is Ready", {
+    body: prompt.project ? `${prompt.project} is waiting for input` : "Waiting for your input",
     tag: `claude-idle-${prompt.ts}`,
   });
 }

@@ -12,6 +12,8 @@ contextBridge.exposeInMainWorld("gateDesktop", {
       if (
         data &&
         typeof data === "object" &&
+        Object.prototype.hasOwnProperty.call(data, "requestId") &&
+        Object.prototype.hasOwnProperty.call(data, "decision") &&
         typeof data.requestId === "string" &&
         (data.decision === "allow" || data.decision === "deny")
       ) {

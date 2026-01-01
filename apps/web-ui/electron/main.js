@@ -91,8 +91,32 @@ function handleWindowCreationError(error) {
   dialog.showErrorBox("Gate Desktop Error", "An unexpected error occurred while creating the application window.");
 }
 
+function isValidPermissionPayload(payload) {
+  return (
+    payload &&
+    typeof payload === "object" &&
+    typeof payload.requestId === "string" &&
+    typeof payload.summary === "string" &&
+    typeof payload.command === "string" &&
+    typeof payload.cwd === "string"
+  );
+}
+
+function isValidIdlePayload(payload) {
+  return (
+    payload &&
+    typeof payload === "object" &&
+    (payload.project === undefined || typeof payload.project === "string")
+  );
+}
+
 function handlePermissionNotification(event, payload) {
   if (!Notification.isSupported()) {
+    return false;
+  }
+
+  if (!isValidPermissionPayload(payload)) {
+    console.warn("[Electron] Ignoring invalid permission payload", payload);
     return false;
   }
 
@@ -110,17 +134,20 @@ function handlePermissionNotification(event, payload) {
 
   const sender = event.sender;
 
+  const cleanup = () => {
+    notification.removeAllListeners();
+  };
+
   notification.on("action", (_event, index) => {
     const decision = index === 0 ? "allow" : "deny";
     sender.send("notifications:decision", {
       requestId: payload.requestId,
       decision,
     });
+    cleanup();
   });
 
-  notification.on("close", () => {
-    notification.removeAllListeners();
-  });
+  notification.on("close", cleanup);
 
   notification.show();
   return true;
@@ -128,6 +155,11 @@ function handlePermissionNotification(event, payload) {
 
 function handleIdleNotification(_event, payload) {
   if (!Notification.isSupported()) {
+    return false;
+  }
+
+  if (!isValidIdlePayload(payload)) {
+    console.warn("[Electron] Ignoring invalid idle payload", payload);
     return false;
   }
 

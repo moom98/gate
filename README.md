@@ -108,7 +108,7 @@ pnpm electron:dev
 ```
 This command spins up the Next.js dev server in the background and opens the Electron shell once the UI is ready. The authentication flow happens entirely inside the Electron window (you'll still be redirected to `/pair` the first time). Tokens remain stored in the window's localStorage, so future launches remember the pairing unless you log out.
 
-Desktop notifications fired from the Electron app include Allow/Deny buttons on macOS, so you can approve requests without returning to the window.
+Desktop notifications fired from the Electron app include Allow/Deny buttons on macOS, so you can approve requests without returning to the window. Windows/Linux currently fall back to the standard notification behavior (no inline buttons), so you may still need to return to the Gate window on those platforms.
 
 To build a standalone desktop app:
 

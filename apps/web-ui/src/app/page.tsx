@@ -88,7 +88,7 @@ export default function Home() {
     return () => {
       unsubscribe?.();
     };
-  }, [apiClient, requestsRef]);
+  }, [apiClient]);
 
   const wsUrlWithToken = token ? `${WS_URL}?token=${encodeURIComponent(token)}` : "";
   const { connectionState, requests, claudeIdlePrompt, dismissClaudeIdlePrompt } = useWebSocket(wsUrlWithToken);
