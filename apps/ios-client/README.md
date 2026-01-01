@@ -150,7 +150,7 @@ Tap the menu icon (⋯) in the top-right to:
 ## Architecture
 
 ### Models
-- `PermissionRequest`: Permission request from adapter
+- `PermissionRequest`: Permission request from the broker
 - `Decision`: Allow/Deny decision enum
 - `WebSocketMessage`: WebSocket message protocol
 - `BrokerConfig`: Broker URL and authentication token

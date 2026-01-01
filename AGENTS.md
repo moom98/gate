@@ -33,7 +33,7 @@ Gate is a permission gateway system that intercepts Claude Code CLI tool executi
 # Install all dependencies
 pnpm install
 
-# Build all packages (broker, web-ui only - adapter-claude-legacy excluded)
+# Build all packages (broker and web-ui)
 pnpm -r build
 
 # Run linting across all packages

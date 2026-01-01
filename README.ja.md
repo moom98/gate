@@ -211,12 +211,6 @@ pnpm dev               # tsx watchで起動
 pnpm build             # TypeScriptをビルド
 pnpm typecheck         # 型チェックのみ
 
-# Adapter（非推奨 - Claude Code Hooksを使用してください）
-cd apps/adapter-claude
-pnpm dev               # tsx watchで起動
-pnpm build             # TypeScriptをビルド
-pnpm typecheck         # 型チェックのみ
-
 # Web UI
 cd apps/web-ui
 pnpm dev               # Next.js開発サーバーを起動（ポート3001）
@@ -247,11 +241,6 @@ gate/
 │   │   └── next.config.js
 │   ├── ios-client/          # SwiftUI iOSアプリ（予定）
 │   │   └── README.md
-│   └── adapter-claude-legacy/  # 非推奨 PTYラッパー（レガシー）
-│       ├── src/
-│       │   └── index.ts
-│       ├── package.json
-│       └── tsconfig.json
 ├── .claude/
 │   ├── hooks/
 │   │   └── pretooluse-gate.js  # Claude Code PreToolUseフック
@@ -274,15 +263,13 @@ gate/
 
 1. ✅ **Step 1**: プロジェクト構造のブートストラップ
 2. ✅ **Step 2**: 基本的なHTTPエンドポイントを持つBrokerスケルトンの実装
-3. ✅ **Step 3**: Claude CLIをスポーンするPTYラッパーの追加
-4. ✅ **Step 4**: BrokerへのWebSocketサポートの追加
-5. ✅ **Step 5**: アダプターでのパターン検出とy/nインジェクションの実装
-6. ✅ **Step 6**: WebSocket経由でWeb UIをBrokerに接続
-7. ✅ **Step 7**: トークンベース認証の追加
+3. ✅ **Step 3**: BrokerへのWebSocketサポートの追加
+4. ✅ **Step 4**: Web UIをBrokerに接続
+5. ✅ **Step 5**: トークンベース認証の追加
 
 🚧 **進行中:**
 
-- **Step 8**: 最小限のiOSクライアントの構築（SwiftUIスキャフォールディング利用可能、Xcodeプロジェクトのセットアップが必要）
+- **Step 6**: 最小限のiOSクライアントの構築（SwiftUIスキャフォールディング利用可能、Xcodeプロジェクトのセットアップが必要）
 
 ## 設定
 
@@ -292,12 +279,6 @@ gate/
 
 - `PORT` - HTTPサーバーポート（デフォルト: 3000）
 - `WS_PATH` - WebSocketエンドポイントパス（デフォルト: /ws）
-
-**Adapter（非推奨）** (`apps/adapter-claude/.env`):
-
-- `BROKER_URL` - Broker HTTP URL（デフォルト: <http://localhost:3000>）
-- `BROKER_TOKEN` - 認証トークン（ステップ7以降必須）
-- `CLAUDE_COMMAND` - Claude CLIコマンド（デフォルト: claude）
 
 **Web UI** (`apps/web-ui/.env.local`):
 
@@ -334,7 +315,7 @@ CIの使用環境:
 **セキュリティのベストプラクティス:**
 
 - Brokerはlocalhostまたは信頼できるLAN上でのみ実行
-- トークンは環境変数（adapter）またはlocalStorage（web-ui）に保存
+- トークンは環境変数（フック/スクリプト）またはlocalStorage（デスクトップUI）に保存
 - `.env`ファイルやトークンをバージョン管理にコミットしない
 - 不審なアクティビティについてBrokerログを監視
 - 本番環境では定期的にペアリングコードを再生成
@@ -370,9 +351,7 @@ CIの使用環境:
 
 - `feat/000-bootstrap` - 初期プロジェクトセットアップ（現在）
 - `feat/010-broker-skeleton` - HTTP APIエンドポイント
-- `feat/020-adapter-pty` - PTYマネージャー
 - `feat/030-broker-ws` - WebSocket統合
-- `feat/040-adapter-detect-inject` - パターン検出とインジェクション
 - `feat/050-web-ui-integrate` - Web UI統合
 - `feat/060-token-pairing` - 認証
 - `feat/070-ios-minimal` - iOSクライアント
