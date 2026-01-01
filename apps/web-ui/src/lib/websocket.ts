@@ -231,7 +231,7 @@ async function notifyPermissionRequest(request: PermissionRequest) {
     }
   }
 
-  showBrowserNotification("Permission Request", {
+  showFallbackNotification("Permission Request", {
     body: request.summary,
     tag: request.id,
   });
@@ -249,13 +249,13 @@ async function notifyClaudeIdlePrompt(prompt: ClaudeIdlePrompt) {
     }
   }
 
-  showBrowserNotification("Claude is Ready", {
+  showFallbackNotification("Claude is Ready", {
     body: prompt.project ? `${prompt.project} is waiting for input` : "Waiting for your input",
     tag: `claude-idle-${prompt.ts}`,
   });
 }
 
-function showBrowserNotification(title: string, options?: NotificationOptions) {
+function showFallbackNotification(title: string, options?: NotificationOptions) {
   if (typeof window === "undefined" || typeof Notification === "undefined") {
     return;
   }

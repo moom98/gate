@@ -67,22 +67,32 @@ export default function Home() {
       return;
     }
 
-    const unsubscribe = window.gateDesktop.onNotificationDecision(async ({ requestId, decision }) => {
+    const processDecision = (requestId: string, decision: "allow" | "deny", attempt = 0) => {
       const requestExists = requestsRef.current.some((request) => request.id === requestId);
       if (!requestExists) {
-        console.warn(
-          "[Electron Notifications] Ignored decision for unknown request",
-          requestId,
-          decision
-        );
+        if (attempt < 3) {
+          setTimeout(() => processDecision(requestId, decision, attempt + 1), 200);
+        } else {
+          console.warn(
+            "[Electron Notifications] Ignored decision for unknown request",
+            requestId,
+            decision
+          );
+        }
         return;
       }
 
-      try {
-        await apiClient.sendDecision(requestId, decision);
-      } catch (error) {
-        console.error("[Electron Notifications] Failed to send decision:", error);
-      }
+      (async () => {
+        try {
+          await apiClient.sendDecision(requestId, decision);
+        } catch (error) {
+          console.error("[Electron Notifications] Failed to send decision:", error);
+        }
+      })();
+    };
+
+    const unsubscribe = window.gateDesktop.onNotificationDecision(({ requestId, decision }) => {
+      processDecision(requestId, decision);
     });
 
     return () => {

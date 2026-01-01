@@ -92,22 +92,32 @@ function handleWindowCreationError(error) {
 }
 
 function isValidPermissionPayload(payload) {
-  return (
-    payload &&
-    typeof payload === "object" &&
-    typeof payload.requestId === "string" &&
-    typeof payload.summary === "string" &&
-    typeof payload.command === "string" &&
-    typeof payload.cwd === "string"
-  );
+  if (
+    !payload ||
+    typeof payload !== "object" ||
+    typeof payload.requestId !== "string" ||
+    typeof payload.summary !== "string" ||
+    typeof payload.command !== "string" ||
+    typeof payload.cwd !== "string"
+  ) {
+    return false;
+  }
+
+  const allowedKeys = new Set(["requestId", "summary", "command", "cwd"]);
+  return Object.keys(payload).every((key) => allowedKeys.has(key));
 }
 
 function isValidIdlePayload(payload) {
-  return (
-    payload &&
-    typeof payload === "object" &&
-    (payload.project === undefined || typeof payload.project === "string")
-  );
+  if (!payload || typeof payload !== "object") {
+    return false;
+  }
+
+  if (payload.project !== undefined && typeof payload.project !== "string") {
+    return false;
+  }
+
+  const allowedKeys = new Set(["project"]);
+  return Object.keys(payload).every((key) => allowedKeys.has(key));
 }
 
 function handlePermissionNotification(event, payload) {
