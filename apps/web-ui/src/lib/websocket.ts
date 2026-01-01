@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { toast } from "sonner";
+import { useEffect, useState, useRef, useCallback } from "react";
 
 /**
  * WebSocket message types from broker
@@ -14,8 +13,15 @@ export type WSMessage =
     }
   | {
       type: "claude_idle_prompt";
-      payload: { type: string; ts: string; project?: string };
+      payload: ClaudeIdlePrompt;
     };
+
+export interface ClaudeIdlePrompt {
+  type: "idle_prompt";
+  raw?: unknown;
+  ts: string;
+  project?: string;
+}
 
 /**
  * Permission request from broker
@@ -44,6 +50,7 @@ export type ConnectionState = "connecting" | "connected" | "disconnected" | "err
 export function useWebSocket(url: string) {
   const [connectionState, setConnectionState] = useState<ConnectionState>("disconnected");
   const [requests, setRequests] = useState<Map<string, PermissionRequest>>(new Map());
+  const [claudeIdlePrompt, setClaudeIdlePrompt] = useState<ClaudeIdlePrompt | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
@@ -87,7 +94,21 @@ export function useWebSocket(url: string) {
 
             if (message.type === "permission_request") {
               console.log("[WebSocket] Received permission request:", message.payload.id);
-              setRequests((prev) => new Map(prev).set(message.payload.id, message.payload));
+              setRequests((prev) => {
+                const next = new Map(prev);
+                const isNewRequest = !next.has(message.payload.id);
+                next.set(message.payload.id, message.payload);
+
+                if (isNewRequest) {
+                  sendDesktopNotification("新しい権限リクエスト", {
+                    body: message.payload.summary,
+                    tag: message.payload.id,
+                  });
+                }
+
+                return next;
+              });
+              setClaudeIdlePrompt(null);
             } else if (message.type === "permission_resolved") {
               console.log(
                 "[WebSocket] Permission resolved:",
@@ -96,35 +117,6 @@ export function useWebSocket(url: string) {
                 "reason:",
                 message.payload.reason || "none"
               );
-
-              // Show completion toast notification (except for timeout)
-              if (message.payload.reason !== "timeout") {
-                setRequests((prev) => {
-                  const request = prev.get(message.payload.id);
-                  if (request) {
-                    const title =
-                      message.payload.decision === "allow"
-                        ? "Request Allowed ✓"
-                        : message.payload.decision === "alwaysAllow"
-                          ? "Always Allowed ✓✓"
-                          : "Request Denied ✗";
-
-                    // Use appropriate toast type based on decision
-                    const toastFn =
-                      message.payload.decision === "deny" ? toast.error : toast.success;
-
-                    toastFn(title, {
-                      description: request.summary.slice(0, 80),
-                      action: {
-                        label: "OK",
-                        onClick: () => {},
-                      },
-                      duration: 5000,
-                    });
-                  }
-                  return prev;
-                });
-              }
 
               // Handle timeout vs manual resolution
               if (message.payload.reason === "timeout") {
@@ -147,14 +139,10 @@ export function useWebSocket(url: string) {
               }
             } else if (message.type === "claude_idle_prompt") {
               console.log("[WebSocket] Claude idle prompt received");
-              // Show "Claude is Ready" notification
-              toast.success("Claude is Ready", {
-                description: "Waiting for your input",
-                action: {
-                  label: "OK",
-                  onClick: () => {},
-                },
-                duration: 5000,
+              setClaudeIdlePrompt(message.payload);
+              sendDesktopNotification("Claude が待機中", {
+                body: message.payload.project ? `${message.payload.project} で入力待ちです` : "入力を待機しています",
+                tag: `claude-idle-${message.payload.ts}`,
               });
             }
           } catch (error) {
@@ -219,8 +207,30 @@ export function useWebSocket(url: string) {
     };
   }, [url]);
 
+  const dismissClaudeIdlePrompt = useCallback(() => {
+    setClaudeIdlePrompt(null);
+  }, []);
+
   return {
     connectionState,
     requests: Array.from(requests.values()),
+    claudeIdlePrompt,
+    dismissClaudeIdlePrompt,
   };
+}
+
+function sendDesktopNotification(title: string, options?: NotificationOptions) {
+  if (typeof window === "undefined" || typeof Notification === "undefined") {
+    return;
+  }
+
+  if (Notification.permission !== "granted") {
+    return;
+  }
+
+  try {
+    new Notification(title, options);
+  } catch (error) {
+    console.error("[Notification] Failed to show notification:", error);
+  }
 }

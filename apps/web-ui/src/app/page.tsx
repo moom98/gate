@@ -3,10 +3,11 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PermissionRequestCard } from "@/components/permission-request-card";
+import { ClaudeIdleCard } from "@/components/claude-idle-card";
 import { useWebSocket } from "@/lib/websocket";
 import { AuthStorage } from "@/lib/auth";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 const BROKER_URL = process.env.NEXT_PUBLIC_BROKER_URL || "http://localhost:3000";
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:3000/ws";
@@ -15,6 +16,7 @@ export default function Home() {
   const router = useRouter();
   const [token, setToken] = useState<string | null>(null);
   const [clientId, setClientId] = useState<string | null>(null);
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | "checking" | "unsupported">("checking");
 
   useEffect(() => {
     const storedToken = AuthStorage.getToken();
@@ -29,8 +31,34 @@ export default function Home() {
     setClientId(storedClientId);
   }, [router]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (!("Notification" in window)) {
+      setNotificationPermission("unsupported");
+      return;
+    }
+
+    setNotificationPermission(Notification.permission);
+  }, []);
+
+  const requestNotificationPermission = useCallback(async () => {
+    if (typeof window === "undefined" || typeof Notification === "undefined") {
+      return;
+    }
+
+    try {
+      const result = await Notification.requestPermission();
+      setNotificationPermission(result);
+    } catch (error) {
+      console.error("[Notifications] Failed to request permission", error);
+    }
+  }, []);
+
   const wsUrlWithToken = token ? `${WS_URL}?token=${encodeURIComponent(token)}` : "";
-  const { connectionState, requests } = useWebSocket(wsUrlWithToken);
+  const { connectionState, requests, claudeIdlePrompt, dismissClaudeIdlePrompt } = useWebSocket(wsUrlWithToken);
 
   const handleLogout = () => {
     AuthStorage.clearAuth();
@@ -75,6 +103,34 @@ export default function Home() {
             </Button>
           </div>
         </div>
+
+        {claudeIdlePrompt && (
+          <ClaudeIdleCard prompt={claudeIdlePrompt} onDismiss={dismissClaudeIdlePrompt} />
+        )}
+
+        {notificationPermission !== "granted" &&
+          notificationPermission !== "unsupported" &&
+          notificationPermission !== "checking" && (
+          <Card className="border-blue-500 bg-blue-50">
+            <CardHeader>
+              <CardTitle className="text-blue-900">Enable Desktop Notifications</CardTitle>
+              <CardDescription className="text-blue-800">
+                Allow Gate to send macOS notifications for Claude requests and idle events.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {notificationPermission === "denied" ? (
+                <p className="text-sm text-blue-900">
+                  Notifications are blocked in your browser. Please enable them in Settings &gt; Notifications.
+                </p>
+              ) : (
+                <Button onClick={requestNotificationPermission} className="bg-blue-600 hover:bg-blue-700">
+                  Allow Notifications
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Info Card */}
         <Card>
