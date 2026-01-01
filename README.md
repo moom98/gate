@@ -167,6 +167,37 @@ The authentication token is stored in localStorage, so you won't need to pair ag
 3. The hook script will now intercept Bash, Edit, Write, and NotebookEdit tools
 4. All other tools (Read, Grep, etc.) will execute without approval
 
+**Managing Local Token Configuration:**
+
+To prevent accidentally committing your authentication token to version control:
+
+```bash
+# Tell git to ignore local changes to settings.json
+git update-index --skip-worktree .claude/settings.json
+```
+
+This allows you to keep your real token in `settings.json` locally while the repository retains placeholder values.
+
+**Note:** If you need to update the settings.json template in the repository:
+
+```bash
+# Temporarily allow tracking settings.json changes
+git update-index --no-skip-worktree .claude/settings.json
+
+# Make your changes to the template
+# (remember to replace real tokens with {{REPLACE_WITH_YOUR_TOKEN}})
+
+# Commit the template changes
+git add .claude/settings.json
+git commit -m "docs: update settings.json template"
+
+# Re-enable skip-worktree
+git update-index --skip-worktree .claude/settings.json
+
+# Restore your local token
+# (edit .claude/settings.json to add your token back)
+```
+
 **How to Use:**
 
 1. Start Claude CLI in any project directory:
