@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { PermissionRequestCard } from "@/components/permission-request-card";
 import { ClaudeIdleCard } from "@/components/claude-idle-card";
-import { useWebSocket } from "@/lib/websocket";
+import { useWebSocket, type PermissionRequest } from "@/lib/websocket";
 import { AuthStorage } from "@/lib/auth";
 import { BrokerAPI } from "@/lib/api";
 import { useRouter } from "next/navigation";
@@ -58,6 +58,9 @@ export default function Home() {
     }
   }, []);
 
+  const apiClient = useMemo(() => new BrokerAPI(BROKER_URL), []);
+  const requestsRef = useRef<PermissionRequest[]>([]);
+
   useEffect(() => {
     if (typeof window === "undefined" || !window.gateDesktop?.onNotificationDecision) {
       return;
@@ -83,8 +86,6 @@ export default function Home() {
 
   const wsUrlWithToken = token ? `${WS_URL}?token=${encodeURIComponent(token)}` : "";
   const { connectionState, requests, claudeIdlePrompt, dismissClaudeIdlePrompt } = useWebSocket(wsUrlWithToken);
-  const apiClient = useMemo(() => new BrokerAPI(BROKER_URL), []);
-  const requestsRef = useRef<typeof requests>([]);
 
   useEffect(() => {
     requestsRef.current = requests;
