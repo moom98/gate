@@ -6,6 +6,7 @@ import {
   PermissionRequest,
   PermissionResolved,
   ClaudeEventPayload,
+  CodexEventPayload,
 } from "./types";
 import { AuthService } from "./auth";
 
@@ -18,7 +19,8 @@ export type WSMessage =
       type: "permission_resolved";
       payload: PermissionResolved;
     }
-  | { type: "claude_idle_prompt"; payload: ClaudeEventPayload };
+  | { type: "claude_idle_prompt"; payload: ClaudeEventPayload }
+  | { type: "codex_turn_complete"; payload: CodexEventPayload };
 
 /**
  * WebSocket connection manager
@@ -113,6 +115,21 @@ class WebSocketManager {
     this.broadcast(message);
     console.log(
       `[Broker] Broadcasted claude_idle_prompt (project: ${event.project || "unknown"}) to ${this.clients.size} clients`
+    );
+  }
+
+  /**
+   * Broadcast Codex turn complete event to all connected clients
+   */
+  broadcastCodexEvent(event: CodexEventPayload): void {
+    const message: WSMessage = {
+      type: "codex_turn_complete",
+      payload: event,
+    };
+
+    this.broadcast(message);
+    console.log(
+      `[Broker] Broadcasted codex_turn_complete (threadId: ${event.threadId}) to ${this.clients.size} clients`
     );
   }
 

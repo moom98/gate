@@ -74,3 +74,21 @@ export interface ClaudeEventPayload {
   /** Project path */
   project?: string;
 }
+
+/**
+ * Codex CLI event payload (agent-turn-complete)
+ */
+export interface CodexEventPayload {
+  /** Event type */
+  type: "agent-turn-complete";
+  /** Thread identifier */
+  threadId: string;
+  /** Current working directory */
+  cwd: string;
+  /** Raw payload from Codex CLI */
+  raw: unknown;
+  /** Timestamp */
+  ts: string;
+  /** Message summary (truncated to 500 chars for security) */
+  message?: string;
+}
