@@ -38,6 +38,7 @@ jobs:
     timeout-minutes: 45
 
     env:
+      # Wait time (seconds) before processing to batch bursts of feedback.
       DEBOUNCE_SECONDS: "300"
 
     steps:
@@ -98,7 +99,8 @@ jobs:
             );
 
             const fmt = (s) => (s || "").trim();
-            const MAX_ITEMS = 60;
+            const MAX_ITEMS = 60; // Keep prompt size manageable while retaining recent context
+            const toBase64 = (str) => Buffer.from(str || "", "utf8").toString("base64");
 
             const trimmedReviewComments = reviewComments.slice(-MAX_ITEMS);
             const trimmedReviews = reviews.slice(-MAX_ITEMS);
@@ -160,6 +162,11 @@ jobs:
             core.setOutput("reviews_block", reviewsBlock || "(none)");
             core.setOutput("issue_comments_block", issueCommentsBlock || "(none)");
 
+            core.setOutput("trigger_body_b64", toBase64(triggerBody));
+            core.setOutput("review_comments_block_b64", toBase64(reviewCommentsBlock));
+            core.setOutput("reviews_block_b64", toBase64(reviewsBlock));
+            core.setOutput("issue_comments_block_b64", toBase64(issueCommentsBlock));
+
       - name: Checkout PR branch
         uses: actions/checkout@v4
         with:
@@ -175,6 +182,11 @@ jobs:
         id: prompt
         shell: bash
         run: |
+          trigger_body=$(echo "${{ steps.pr.outputs.trigger_body_b64 }}" | base64 --decode || printf '')
+          review_comments=$(echo "${{ steps.pr.outputs.review_comments_block_b64 }}" | base64 --decode || printf '(none)')
+          reviews_block=$(echo "${{ steps.pr.outputs.reviews_block_b64 }}" | base64 --decode || printf '(none)')
+          issue_comments=$(echo "${{ steps.pr.outputs.issue_comments_block_b64 }}" | base64 --decode || printf '(none)')
+
           cat > /tmp/gemini_prompt.txt <<'EOF'
           あなたはリポジトリ内で動作する自動修正エージェントです。
           目的: このPRに付いている「レビュー指摘 / PRコメント指摘」を満たすように、必要最小限の変更で修正してください。
@@ -184,7 +196,6 @@ jobs:
           - 既存の設計・命名・コーディング規約を尊重
           - 変更はローカルファイルに反映し、コミット可能な状態にする
           - 競合する指摘があれば、その理由をPRコメントに短く説明する
-          - 可能なら簡単な検証（lint/test/buildのいずれか）を試し、失敗したら原因を説明（実行できない場合は「未実行」と明記）
 
           対象PR:
           - URL: ${{ steps.pr.outputs.pr_url }}
@@ -195,22 +206,22 @@ jobs:
           - source: ${{ steps.pr.outputs.trigger_source }}
           - body:
           ---
-          ${{ steps.pr.outputs.trigger_body }}
+          ${trigger_body}
           ---
 
           直近のレビューコメント（inline）:
           ---
-          ${{ steps.pr.outputs.review_comments_block }}
+          ${review_comments}
           ---
 
           直近のレビュー本文（Approve/Request changes 等）:
           ---
-          ${{ steps.pr.outputs.reviews_block }}
+          ${reviews_block}
           ---
 
           PR会話欄のコメント（issue_comment）:
           ---
-          ${{ steps.pr.outputs.issue_comments_block }}
+          ${issue_comments}
           ---
 
           最後に、実施内容を日本語で箇条書き（3〜8行）でまとめてください。
@@ -226,7 +237,7 @@ jobs:
         with:
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
           prompt: ${{ steps.prompt.outputs.prompt }}
-          gemini_cli_version: latest
+          gemini_cli_version: 0.5.0
 
       - name: Commit & push changes (if any)
         id: commit
@@ -243,8 +254,19 @@ jobs:
           git config user.email "gemini-cli[bot]@users.noreply.github.com"
 
           git add -A
-          git commit -m "fix: address PR feedback (gemini)"
-          git push origin HEAD:${{ steps.pr.outputs.head_ref }}
+          SUMMARY="${{ steps.gemini.outputs.summary }}"
+          git commit -m "chore: gemini autofix for PR #${{ steps.pr.outputs.pr_number }}" -m "${SUMMARY:-Auto-fix from Gemini}"
+
+          TARGET_BRANCH="${{ steps.pr.outputs.head_ref }}"
+          if [[ -z "$TARGET_BRANCH" ]]; then
+            echo "Error: target branch empty" >&2
+            exit 1
+          fi
+
+          if ! git push origin "HEAD:$TARGET_BRANCH"; then
+            echo "Error: failed to push changes to origin/$TARGET_BRANCH" >&2
+            exit 1
+          fi
 
           echo "changed=true" >> "$GITHUB_OUTPUT"
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
