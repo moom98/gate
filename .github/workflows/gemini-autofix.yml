@@ -271,7 +271,9 @@ jobs:
               summary || "(no summary)",
             ].join("\n");
 
-            if (err) body += "\n\n#### error\n" + err;
+            if (err) {
+              body += `\n\n#### error\n\`\`\`\n${err}\n\`\`\`\n`;
+            }
 
             await github.rest.issues.createComment({
               owner, repo,
