@@ -3,6 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CodexTurnComplete } from "@/lib/websocket";
+import { formatTimestamp } from "@/lib/time";
 import { Terminal, X, ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 
@@ -49,7 +50,7 @@ export function CodexEventsCard({ events, onDismiss }: CodexEventsCardProps) {
       <CardContent className="space-y-3">
         {events.map((event) => {
           const isExpanded = expandedEvents.has(event.uid);
-          const timestamp = getFormattedTime(event.ts);
+          const timestamp = formatTimestamp(event.ts);
           const shortThreadId = truncateThreadId(event.threadId);
           const shortCwd = truncatePath(event.cwd, PATH_DISPLAY_LENGTH);
 
@@ -62,14 +63,14 @@ export function CodexEventsCard({ events, onDismiss }: CodexEventsCardProps) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <code className="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded font-mono">
-                      {shortThreadId}...
+                      {shortThreadId}
                     </code>
                     {timestamp && (
                       <span className="text-xs text-purple-600">{timestamp}</span>
                     )}
                   </div>
                   <p className="text-sm text-purple-900 font-medium">
-                    {event.message || 'Agent turn completed'}
+                    {event.message || "Agent turn completed"}
                   </p>
                   <p className="text-xs text-purple-700 font-mono mt-1">
                     {shortCwd}
@@ -127,19 +128,6 @@ export function CodexEventsCard({ events, onDismiss }: CodexEventsCardProps) {
       </CardContent>
     </Card>
   );
-}
-
-function getFormattedTime(timestamp: string): string | null {
-  const date = new Date(timestamp);
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-
-  return new Intl.DateTimeFormat(undefined, {
-    hour: "numeric",
-    minute: "numeric",
-    second: "numeric",
-  }).format(date);
 }
 
 function truncateThreadId(threadId: string): string {

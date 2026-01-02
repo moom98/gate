@@ -164,6 +164,12 @@ export function useWebSocket(url: string) {
               // Deduplication: Ignore same threadId within window
               const now = Date.now();
               const lastMap = lastCodexThreadRef.current;
+              for (const [threadId, ts] of lastMap.entries()) {
+                if (now - ts > CODEX_EVENT_DEDUP_WINDOW_MS) {
+                  lastMap.delete(threadId);
+                }
+              }
+
               const lastTs = lastMap.get(message.payload.threadId);
               if (lastTs && now - lastTs < CODEX_EVENT_DEDUP_WINDOW_MS) {
                 console.log("[WebSocket] Ignoring duplicate Codex event for threadId:", message.payload.threadId);

@@ -4,6 +4,7 @@ import { CheckCircle2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ClaudeIdlePrompt } from "@/lib/websocket";
+import { formatTimestamp } from "@/lib/time";
 
 interface ClaudeIdleCardProps {
   prompt: ClaudeIdlePrompt;
@@ -11,7 +12,7 @@ interface ClaudeIdleCardProps {
 }
 
 export function ClaudeIdleCard({ prompt, onDismiss }: ClaudeIdleCardProps) {
-  const receivedAt = getFormattedTime(prompt.ts);
+  const receivedAt = formatTimestamp(prompt.ts);
   const projectLabel = prompt.project ? `Project: ${prompt.project}` : "Waiting for your input";
 
   return (
@@ -42,17 +43,4 @@ export function ClaudeIdleCard({ prompt, onDismiss }: ClaudeIdleCardProps) {
       </CardContent>
     </Card>
   );
-}
-
-function getFormattedTime(timestamp: string): string | null {
-  const date = new Date(timestamp);
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-
-  return new Intl.DateTimeFormat(undefined, {
-    hour: "numeric",
-    minute: "numeric",
-    second: "numeric",
-  }).format(date);
 }
