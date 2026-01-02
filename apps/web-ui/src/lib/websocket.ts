@@ -27,18 +27,33 @@ export interface ClaudeIdlePrompt {
   project?: string;
 }
 
+/**
+ * Codex CLI "agent-turn-complete" payload forwarded by the broker.
+ */
 export interface CodexTurnComplete {
+  /** Event type emitted by Codex CLI (hyphenated to match upstream payload). */
   type: "agent-turn-complete";
+  /** Codex thread identifier. */
   threadId: string;
+  /** Working directory reported by Codex CLI. */
   cwd: string;
+  /** Raw, untyped payload from Codex CLI. */
   raw?: unknown;
+  /** ISO timestamp of the event. */
   ts: string;
+  /** Optional message summary provided by Codex CLI. */
   message?: string;
 }
 
 type CodexEvent = CodexTurnComplete & { uid: string };
 
+/**
+ * Time window (ms) used to deduplicate bursty Codex turn-complete events.
+ */
 const CODEX_EVENT_DEDUP_WINDOW_MS = 5000;
+/**
+ * Maximum number of Codex events retained in memory/UI.
+ */
 const MAX_CODEX_EVENTS = 10;
 
 /**
@@ -76,6 +91,20 @@ export function useWebSocket(url: string) {
   const isMountedRef = useRef(true);
   const removeTimeoutsRef = useRef<Set<NodeJS.Timeout>>(new Set());
   const lastCodexThreadRef = useRef<Map<string, number>>(new Map());
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const map = lastCodexThreadRef.current;
+      for (const [threadId, ts] of map.entries()) {
+        if (now - ts > CODEX_EVENT_DEDUP_WINDOW_MS) {
+          map.delete(threadId);
+        }
+      }
+    }, CODEX_EVENT_DEDUP_WINDOW_MS);
+
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     isMountedRef.current = true;

@@ -12,7 +12,9 @@ interface CodexEventsCardProps {
   onDismiss: (uid: string) => void;
 }
 
+// Display first 8 chars of thread ID to keep badge compact.
 const THREAD_ID_DISPLAY_LENGTH = 8;
+// Limit path preview to 40 chars so cards stay readable on smaller screens.
 const PATH_DISPLAY_LENGTH = 40;
 
 export function CodexEventsCard({ events, onDismiss }: CodexEventsCardProps) {
@@ -37,7 +39,7 @@ export function CodexEventsCard({ events, onDismiss }: CodexEventsCardProps) {
       <CardHeader>
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2">
-            <Terminal className="h-5 w-5 text-purple-600" />
+            <Terminal className="h-5 w-5 text-purple-600" aria-hidden="true" />
             <div>
               <CardTitle className="text-purple-900">Codex Activity</CardTitle>
               <CardDescription className="text-purple-800">
