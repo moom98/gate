@@ -21,7 +21,8 @@ export function postCodexEvents(
     event.type !== "agent-turn-complete" ||
     typeof event.ts !== "string" ||
     typeof event.threadId !== "string" ||
-    typeof event.cwd !== "string"
+    typeof event.cwd !== "string" ||
+    typeof event.raw === "undefined"
   ) {
     console.warn("[Broker] Invalid codex event payload", {
       hasEvent: !!event,
@@ -29,6 +30,7 @@ export function postCodexEvents(
       hasTs: typeof event?.ts === "string",
       hasThreadId: typeof event?.threadId === "string",
       hasCwd: typeof event?.cwd === "string",
+      hasRaw: typeof event?.raw !== "undefined",
     });
     return res.status(400).json({ success: false });
   }
