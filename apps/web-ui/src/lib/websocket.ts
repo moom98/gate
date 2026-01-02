@@ -115,10 +115,7 @@ export function useWebSocket(url: string) {
                 next.set(message.payload.id, message.payload);
 
                 if (isNewRequest) {
-                  sendDesktopNotification("新しい権限リクエスト", {
-                    body: message.payload.summary,
-                    tag: message.payload.id,
-                  });
+                  void notifyPermissionRequest(message.payload);
                 }
 
                 return next;
@@ -155,10 +152,7 @@ export function useWebSocket(url: string) {
             } else if (message.type === "claude_idle_prompt") {
               console.log("[WebSocket] Claude idle prompt received");
               setClaudeIdlePrompt(message.payload);
-              sendDesktopNotification("Claude が待機中", {
-                body: message.payload.project ? `${message.payload.project} で入力待ちです` : "入力を待機しています",
-                tag: `claude-idle-${message.payload.ts}`,
-              });
+              void notifyClaudeIdlePrompt(message.payload);
             } else if (message.type === "codex_turn_complete") {
               console.log("[WebSocket] Codex turn complete received:", message.payload.threadId);
 
@@ -179,10 +173,7 @@ export function useWebSocket(url: string) {
               });
 
               // Send notification
-              sendDesktopNotification("Codex Agent Complete", {
-                body: message.payload.message || `Thread ${message.payload.threadId.slice(0, 8)}... in ${message.payload.cwd}`,
-                tag: `codex-turn-${message.payload.threadId}`,
-              });
+              void notifyCodexTurnComplete(message.payload);
             }
           } catch (error) {
             console.error("[WebSocket] Failed to parse message:", error);
@@ -264,7 +255,71 @@ export function useWebSocket(url: string) {
   };
 }
 
-function sendDesktopNotification(title: string, options?: NotificationOptions) {
+async function notifyPermissionRequest(request: PermissionRequest) {
+  if (typeof window !== "undefined" && window.gateDesktop?.notifyPermissionRequest) {
+    try {
+      const handled = await window.gateDesktop.notifyPermissionRequest({
+        requestId: request.id,
+        summary: request.summary,
+        command: request.details.command,
+        cwd: request.details.cwd,
+      });
+
+      if (handled) {
+        return;
+      }
+    } catch (error) {
+      console.error("[Electron] Failed to show permission notification:", error);
+    }
+  }
+
+  showFallbackNotification("Permission Request", {
+    body: request.summary,
+    tag: request.id,
+  });
+}
+
+async function notifyClaudeIdlePrompt(prompt: ClaudeIdlePrompt) {
+  if (typeof window !== "undefined" && window.gateDesktop?.notifyClaudeIdlePrompt) {
+    try {
+      const handled = await window.gateDesktop.notifyClaudeIdlePrompt({ project: prompt.project });
+      if (handled) {
+        return;
+      }
+    } catch (error) {
+      console.error("[Electron] Failed to show idle notification:", error);
+    }
+  }
+
+  showFallbackNotification("Claude is Ready", {
+    body: prompt.project ? `${prompt.project} is waiting for input` : "Waiting for your input",
+    tag: `claude-idle-${prompt.ts}`,
+  });
+}
+
+async function notifyCodexTurnComplete(event: CodexTurnComplete) {
+  if (typeof window !== "undefined" && window.gateDesktop?.notifyCodexTurnComplete) {
+    try {
+      const handled = await window.gateDesktop.notifyCodexTurnComplete({
+        threadId: event.threadId,
+        cwd: event.cwd,
+        message: event.message || "",
+      });
+      if (handled) {
+        return;
+      }
+    } catch (error) {
+      console.error("[Electron] Failed to show Codex notification:", error);
+    }
+  }
+
+  showFallbackNotification("Codex Agent Complete", {
+    body: event.message || `Thread ${event.threadId.slice(0, 8)}... in ${event.cwd}`,
+    tag: `codex-turn-${event.threadId}`,
+  });
+}
+
+function showFallbackNotification(title: string, options?: NotificationOptions) {
   if (typeof window === "undefined" || typeof Notification === "undefined") {
     return;
   }

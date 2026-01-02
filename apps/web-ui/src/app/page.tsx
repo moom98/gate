@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { PermissionRequestCard } from "@/components/permission-request-card";
 import { ClaudeIdleCard } from "@/components/claude-idle-card";
 import { CodexEventsCard } from "@/components/codex-events-card";
-import { useWebSocket } from "@/lib/websocket";
+import { useWebSocket, type PermissionRequest } from "@/lib/websocket";
 import { AuthStorage } from "@/lib/auth";
+import { BrokerAPI } from "@/lib/api";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const BROKER_URL = process.env.NEXT_PUBLIC_BROKER_URL || "http://localhost:3000";
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:3000/ws";
@@ -58,8 +59,54 @@ export default function Home() {
     }
   }, []);
 
+
+  const apiClient = useMemo(() => new BrokerAPI(BROKER_URL), []);
+  const requestsRef = useRef<PermissionRequest[]>([]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.gateDesktop?.onNotificationDecision) {
+      return;
+    }
+
+    const processDecision = (requestId: string, decision: "allow" | "deny", attempt = 0) => {
+      const requestExists = requestsRef.current.some((request) => request.id === requestId);
+      if (!requestExists) {
+        if (attempt < 3) {
+          setTimeout(() => processDecision(requestId, decision, attempt + 1), 200);
+        } else {
+          console.warn(
+            "[Electron Notifications] Ignored decision for unknown request",
+            requestId,
+            decision
+          );
+        }
+        return;
+      }
+
+      (async () => {
+        try {
+          await apiClient.sendDecision(requestId, decision);
+        } catch (error) {
+          console.error("[Electron Notifications] Failed to send decision:", error);
+        }
+      })();
+    };
+
+    const unsubscribe = window.gateDesktop.onNotificationDecision(({ requestId, decision }) => {
+      processDecision(requestId, decision);
+    });
+
+    return () => {
+      unsubscribe?.();
+    };
+  }, [apiClient]);
+
   const wsUrlWithToken = token ? `${WS_URL}?token=${encodeURIComponent(token)}` : "";
   const { connectionState, requests, claudeIdlePrompt, dismissClaudeIdlePrompt, codexEvents, dismissCodexEvent } = useWebSocket(wsUrlWithToken);
+
+  useEffect(() => {
+    requestsRef.current = requests;
+  }, [requests]);
 
   const handleLogout = () => {
     AuthStorage.clearAuth();
