@@ -4,6 +4,7 @@ enum WebSocketMessage: Codable, Sendable {
     case permissionRequest(PermissionRequest)
     case permissionResolved(PermissionResolved)
     case claudeIdlePrompt(ClaudeIdlePrompt)
+    case codexTurnComplete(CodexTurnComplete)
 
     struct PermissionResolved: Codable, Sendable {
         let id: String
@@ -15,6 +16,14 @@ enum WebSocketMessage: Codable, Sendable {
         let type: String
         let ts: String
         let project: String?
+    }
+
+    struct CodexTurnComplete: Codable, Sendable {
+        let type: String
+        let threadId: String
+        let cwd: String
+        let ts: String
+        let message: String?
     }
 
     enum CodingKeys: String, CodingKey {
@@ -39,6 +48,10 @@ enum WebSocketMessage: Codable, Sendable {
             let payload = try container.decode(ClaudeIdlePrompt.self, forKey: .payload)
             self = .claudeIdlePrompt(payload)
 
+        case "codex_turn_complete":
+            let payload = try container.decode(CodexTurnComplete.self, forKey: .payload)
+            self = .codexTurnComplete(payload)
+
         default:
             throw DecodingError.dataCorruptedError(
                 forKey: .type,
@@ -62,6 +75,10 @@ enum WebSocketMessage: Codable, Sendable {
 
         case .claudeIdlePrompt(let event):
             try container.encode("claude_idle_prompt", forKey: .type)
+            try container.encode(event, forKey: .payload)
+
+        case .codexTurnComplete(let event):
+            try container.encode("codex_turn_complete", forKey: .type)
             try container.encode(event, forKey: .payload)
         }
     }

@@ -20,6 +20,10 @@ final class WebSocketManager {
     private let config: BrokerConfig
     private weak var notificationManager: NotificationManager?
 
+    // Deduplication for Codex events
+    private var lastCodexThreadMap: [String: Date] = [:]
+    private let codexEventDedupWindow: TimeInterval = 5.0
+
     init(config: BrokerConfig, notificationManager: NotificationManager? = nil) {
         self.config = config
         self.notificationManager = notificationManager
@@ -147,6 +151,23 @@ final class WebSocketManager {
 
                 // Also send notification (only shown when app is in background)
                 await notificationManager?.notifyClaudeReady()
+
+            case .codexTurnComplete(let event):
+                // Deduplication logic
+                let now = Date()
+
+                // Cleanup old entries
+                lastCodexThreadMap = lastCodexThreadMap.filter { now.timeIntervalSince($0.value) <= codexEventDedupWindow }
+
+                if let lastTs = lastCodexThreadMap[event.threadId], now.timeIntervalSince(lastTs) < codexEventDedupWindow {
+                    print("Ignoring duplicate Codex event for threadId: \(event.threadId)")
+                    return
+                }
+
+                lastCodexThreadMap[event.threadId] = now
+
+                // Send notification
+                await notificationManager?.notifyCodexTurnComplete(event)
             }
         } catch {
             print("Failed to decode WebSocket message: \(error)")
