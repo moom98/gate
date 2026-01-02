@@ -36,6 +36,11 @@ export interface CodexTurnComplete {
   message?: string;
 }
 
+type CodexEvent = CodexTurnComplete & { uid: string };
+
+const CODEX_EVENT_DEDUP_WINDOW_MS = 5000;
+const MAX_CODEX_EVENTS = 10;
+
 /**
  * Permission request from broker
  */
@@ -64,13 +69,13 @@ export function useWebSocket(url: string) {
   const [connectionState, setConnectionState] = useState<ConnectionState>("disconnected");
   const [requests, setRequests] = useState<Map<string, PermissionRequest>>(new Map());
   const [claudeIdlePrompt, setClaudeIdlePrompt] = useState<ClaudeIdlePrompt | null>(null);
-  const [codexEvents, setCodexEvents] = useState<CodexTurnComplete[]>([]);
+  const [codexEvents, setCodexEvents] = useState<CodexEvent[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const isMountedRef = useRef(true);
   const removeTimeoutsRef = useRef<Set<NodeJS.Timeout>>(new Set());
-  const lastCodexThreadRef = useRef<{ threadId: string; timestamp: number } | null>(null);
+  const lastCodexThreadRef = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -156,20 +161,26 @@ export function useWebSocket(url: string) {
             } else if (message.type === "codex_turn_complete") {
               console.log("[WebSocket] Codex turn complete received:", message.payload.threadId);
 
-              // Deduplication: Ignore same threadId within 5 seconds
+              // Deduplication: Ignore same threadId within window
               const now = Date.now();
-              const last = lastCodexThreadRef.current;
-              if (last && last.threadId === message.payload.threadId && (now - last.timestamp) < 5000) {
+              const lastMap = lastCodexThreadRef.current;
+              const lastTs = lastMap.get(message.payload.threadId);
+              if (lastTs && now - lastTs < CODEX_EVENT_DEDUP_WINDOW_MS) {
                 console.log("[WebSocket] Ignoring duplicate Codex event for threadId:", message.payload.threadId);
                 return;
               }
 
-              lastCodexThreadRef.current = { threadId: message.payload.threadId, timestamp: now };
+              lastMap.set(message.payload.threadId, now);
+
+              const codexEvent: CodexEvent = {
+                ...message.payload,
+                uid: `${message.payload.threadId}-${message.payload.ts}`,
+              };
 
               // Add to events list (keep last 10)
               setCodexEvents((prev) => {
-                const next = [message.payload, ...prev];
-                return next.slice(0, 10);
+                const next = [codexEvent, ...prev];
+                return next.slice(0, MAX_CODEX_EVENTS);
               });
 
               // Send notification
@@ -241,8 +252,8 @@ export function useWebSocket(url: string) {
     setClaudeIdlePrompt(null);
   }, []);
 
-  const dismissCodexEvent = useCallback((threadId: string) => {
-    setCodexEvents((prev) => prev.filter((e) => e.threadId !== threadId));
+  const dismissCodexEvent = useCallback((uid: string) => {
+    setCodexEvents((prev) => prev.filter((e) => e.uid !== uid));
   }, []);
 
   return {
@@ -314,7 +325,7 @@ async function notifyCodexTurnComplete(event: CodexTurnComplete) {
   }
 
   showFallbackNotification("Codex Agent Complete", {
-    body: event.message || `Thread ${event.threadId.slice(0, 8)}... in ${event.cwd}`,
+    body: event.message || `Thread ${event.threadId} in ${event.cwd}`,
     tag: `codex-turn-${event.threadId}`,
   });
 }

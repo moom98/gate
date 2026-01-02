@@ -7,9 +7,12 @@ import { Terminal, X, ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 
 interface CodexEventsCardProps {
-  events: CodexTurnComplete[];
-  onDismiss: (threadId: string) => void;
+  events: (CodexTurnComplete & { uid: string })[];
+  onDismiss: (uid: string) => void;
 }
+
+const THREAD_ID_DISPLAY_LENGTH = 8;
+const PATH_DISPLAY_LENGTH = 40;
 
 export function CodexEventsCard({ events, onDismiss }: CodexEventsCardProps) {
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
@@ -18,12 +21,12 @@ export function CodexEventsCard({ events, onDismiss }: CodexEventsCardProps) {
     return null;
   }
 
-  const toggleExpand = (threadId: string) => {
+  const toggleExpand = (uid: string) => {
     const next = new Set(expandedEvents);
-    if (next.has(threadId)) {
-      next.delete(threadId);
+    if (next.has(uid)) {
+      next.delete(uid);
     } else {
-      next.add(threadId);
+      next.add(uid);
     }
     setExpandedEvents(next);
   };
@@ -45,14 +48,14 @@ export function CodexEventsCard({ events, onDismiss }: CodexEventsCardProps) {
       </CardHeader>
       <CardContent className="space-y-3">
         {events.map((event) => {
-          const isExpanded = expandedEvents.has(event.threadId);
+          const isExpanded = expandedEvents.has(event.uid);
           const timestamp = getFormattedTime(event.ts);
-          const shortThreadId = event.threadId.slice(0, 8);
-          const shortCwd = truncatePath(event.cwd, 40);
+          const shortThreadId = truncateThreadId(event.threadId);
+          const shortCwd = truncatePath(event.cwd, PATH_DISPLAY_LENGTH);
 
           return (
             <div
-              key={event.threadId}
+              key={event.uid}
               className="bg-white rounded-lg border border-purple-200 p-3 space-y-2"
             >
               <div className="flex items-start justify-between gap-2">
@@ -77,7 +80,7 @@ export function CodexEventsCard({ events, onDismiss }: CodexEventsCardProps) {
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 text-purple-600"
-                    onClick={() => toggleExpand(event.threadId)}
+                    onClick={() => toggleExpand(event.uid)}
                     aria-label={isExpanded ? "Collapse details" : "Expand details"}
                   >
                     {isExpanded ? (
@@ -90,7 +93,7 @@ export function CodexEventsCard({ events, onDismiss }: CodexEventsCardProps) {
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 text-purple-600"
-                    onClick={() => onDismiss(event.threadId)}
+                    onClick={() => onDismiss(event.uid)}
                     aria-label="Dismiss event"
                   >
                     <X className="h-4 w-4" />
@@ -139,11 +142,18 @@ function getFormattedTime(timestamp: string): string | null {
   }).format(date);
 }
 
+function truncateThreadId(threadId: string): string {
+  if (threadId.length <= THREAD_ID_DISPLAY_LENGTH) {
+    return threadId;
+  }
+  return threadId.slice(0, THREAD_ID_DISPLAY_LENGTH) + "...";
+}
+
 function truncatePath(path: string, maxLength: number): string {
   if (path.length <= maxLength) {
     return path;
   }
-  // Show beginning and end of path
-  const keep = Math.floor((maxLength - 3) / 2);
-  return path.slice(0, keep) + '...' + path.slice(-keep);
+  const frontKeep = Math.ceil((maxLength - 3) / 2);
+  const backKeep = Math.floor((maxLength - 3) / 2);
+  return path.slice(0, frontKeep) + "..." + path.slice(-backKeep);
 }
