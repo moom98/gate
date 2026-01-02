@@ -312,6 +312,38 @@ final class NotificationManager: NSObject, ObservableObject {
         }
     }
 
+    /// Send notification when Codex agent turn is complete
+    func notifyCodexTurnComplete(_ event: WebSocketMessage.CodexTurnComplete) async {
+        guard authorizationStatus == .authorized else {
+            print("[NotificationManager] Cannot send Codex notification: not authorized")
+            return
+        }
+
+        let content = UNMutableNotificationContent()
+        content.title = "Codex Agent Complete"
+        content.body = event.message ?? "Thread \(event.threadId) in \(event.cwd)"
+        content.sound = .default
+        content.categoryIdentifier = Self.resolvedCategoryIdentifier
+
+        content.userInfo = [
+            "threadId": event.threadId,
+            "cwd": event.cwd
+        ]
+
+        let notificationRequest = UNNotificationRequest(
+            identifier: "codex-turn-\(event.threadId)-\(event.ts)",
+            content: content,
+            trigger: nil
+        )
+
+        do {
+            try await center.add(notificationRequest)
+            print("[NotificationManager] Codex notification sent")
+        } catch {
+            print("[NotificationManager] Failed to send Codex notification: \(error)")
+        }
+    }
+
     /// Truncate summary to fit in notification
     private func truncateSummary(_ summary: String, maxLength: Int = 40) -> String {
         if summary.count <= maxLength {
