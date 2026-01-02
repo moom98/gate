@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { PermissionRequestCard } from "@/components/permission-request-card";
 import { ClaudeIdleCard } from "@/components/claude-idle-card";
+import { CodexEventsCard } from "@/components/codex-events-card";
 import { useWebSocket, type PermissionRequest } from "@/lib/websocket";
 import { AuthStorage } from "@/lib/auth";
 import { BrokerAPI } from "@/lib/api";
@@ -101,7 +102,7 @@ export default function Home() {
   }, [apiClient]);
 
   const wsUrlWithToken = token ? `${WS_URL}?token=${encodeURIComponent(token)}` : "";
-  const { connectionState, requests, claudeIdlePrompt, dismissClaudeIdlePrompt } = useWebSocket(wsUrlWithToken);
+  const { connectionState, requests, claudeIdlePrompt, dismissClaudeIdlePrompt, codexEvents, dismissCodexEvent } = useWebSocket(wsUrlWithToken);
 
   useEffect(() => {
     requestsRef.current = requests;
@@ -153,6 +154,10 @@ export default function Home() {
 
         {claudeIdlePrompt && (
           <ClaudeIdleCard prompt={claudeIdlePrompt} onDismiss={dismissClaudeIdlePrompt} />
+        )}
+
+        {codexEvents.length > 0 && (
+          <CodexEventsCard events={codexEvents} onDismiss={dismissCodexEvent} />
         )}
 
         {notificationPermission !== "granted" &&

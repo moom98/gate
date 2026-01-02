@@ -14,6 +14,10 @@ export type WSMessage =
   | {
       type: "claude_idle_prompt";
       payload: ClaudeIdlePrompt;
+    }
+  | {
+      type: "codex_turn_complete";
+      payload: CodexTurnComplete;
     };
 
 export interface ClaudeIdlePrompt {
@@ -22,6 +26,35 @@ export interface ClaudeIdlePrompt {
   ts: string;
   project?: string;
 }
+
+/**
+ * Codex CLI "agent-turn-complete" payload forwarded by the broker.
+ */
+export interface CodexTurnComplete {
+  /** Event type emitted by Codex CLI (hyphenated to match upstream payload). */
+  type: "agent-turn-complete";
+  /** Codex thread identifier. */
+  threadId: string;
+  /** Working directory reported by Codex CLI. */
+  cwd: string;
+  /** Raw, untyped payload from Codex CLI. */
+  raw?: unknown;
+  /** ISO timestamp of the event. */
+  ts: string;
+  /** Optional message summary provided by Codex CLI. */
+  message?: string;
+}
+
+type CodexEvent = CodexTurnComplete & { uid: string };
+
+/**
+ * Time window (ms) used to deduplicate bursty Codex turn-complete events.
+ */
+const CODEX_EVENT_DEDUP_WINDOW_MS = 5000;
+/**
+ * Maximum number of Codex events retained in memory/UI.
+ */
+const MAX_CODEX_EVENTS = 10;
 
 /**
  * Permission request from broker
@@ -51,11 +84,27 @@ export function useWebSocket(url: string) {
   const [connectionState, setConnectionState] = useState<ConnectionState>("disconnected");
   const [requests, setRequests] = useState<Map<string, PermissionRequest>>(new Map());
   const [claudeIdlePrompt, setClaudeIdlePrompt] = useState<ClaudeIdlePrompt | null>(null);
+  const [codexEvents, setCodexEvents] = useState<CodexEvent[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const isMountedRef = useRef(true);
   const removeTimeoutsRef = useRef<Set<NodeJS.Timeout>>(new Set());
+  const lastCodexThreadRef = useRef<Map<string, number>>(new Map());
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const map = lastCodexThreadRef.current;
+      for (const [threadId, ts] of map.entries()) {
+        if (now - ts > CODEX_EVENT_DEDUP_WINDOW_MS) {
+          map.delete(threadId);
+        }
+      }
+    }, CODEX_EVENT_DEDUP_WINDOW_MS);
+
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -138,6 +187,39 @@ export function useWebSocket(url: string) {
               console.log("[WebSocket] Claude idle prompt received");
               setClaudeIdlePrompt(message.payload);
               void notifyClaudeIdlePrompt(message.payload);
+            } else if (message.type === "codex_turn_complete") {
+              console.log("[WebSocket] Codex turn complete received:", message.payload.threadId);
+
+              // Deduplication: Ignore same threadId within window
+              const now = Date.now();
+              const lastMap = lastCodexThreadRef.current;
+              for (const [threadId, ts] of lastMap.entries()) {
+                if (now - ts > CODEX_EVENT_DEDUP_WINDOW_MS) {
+                  lastMap.delete(threadId);
+                }
+              }
+
+              const lastTs = lastMap.get(message.payload.threadId);
+              if (lastTs && now - lastTs < CODEX_EVENT_DEDUP_WINDOW_MS) {
+                console.log("[WebSocket] Ignoring duplicate Codex event for threadId:", message.payload.threadId);
+                return;
+              }
+
+              lastMap.set(message.payload.threadId, now);
+
+              const codexEvent: CodexEvent = {
+                ...message.payload,
+                uid: `${message.payload.threadId}-${message.payload.ts}`,
+              };
+
+              // Add to events list (keep last 10)
+              setCodexEvents((prev) => {
+                const next = [codexEvent, ...prev];
+                return next.slice(0, MAX_CODEX_EVENTS);
+              });
+
+              // Send notification
+              void notifyCodexTurnComplete(message.payload);
             }
           } catch (error) {
             console.error("[WebSocket] Failed to parse message:", error);
@@ -205,11 +287,17 @@ export function useWebSocket(url: string) {
     setClaudeIdlePrompt(null);
   }, []);
 
+  const dismissCodexEvent = useCallback((uid: string) => {
+    setCodexEvents((prev) => prev.filter((e) => e.uid !== uid));
+  }, []);
+
   return {
     connectionState,
     requests: Array.from(requests.values()),
     claudeIdlePrompt,
     dismissClaudeIdlePrompt,
+    codexEvents,
+    dismissCodexEvent,
   };
 }
 
@@ -252,6 +340,28 @@ async function notifyClaudeIdlePrompt(prompt: ClaudeIdlePrompt) {
   showFallbackNotification("Claude is Ready", {
     body: prompt.project ? `${prompt.project} is waiting for input` : "Waiting for your input",
     tag: `claude-idle-${prompt.ts}`,
+  });
+}
+
+async function notifyCodexTurnComplete(event: CodexTurnComplete) {
+  if (typeof window !== "undefined" && window.gateDesktop?.notifyCodexTurnComplete) {
+    try {
+      const handled = await window.gateDesktop.notifyCodexTurnComplete({
+        threadId: event.threadId,
+        cwd: event.cwd,
+        message: event.message || "",
+      });
+      if (handled) {
+        return;
+      }
+    } catch (error) {
+      console.error("[Electron] Failed to show Codex notification:", error);
+    }
+  }
+
+  showFallbackNotification("Codex Agent Complete", {
+    body: event.message || `Thread ${event.threadId} in ${event.cwd}`,
+    tag: `codex-turn-${event.threadId}`,
   });
 }
 

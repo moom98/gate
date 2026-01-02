@@ -8,6 +8,11 @@ declare global {
         cwd: string;
       }) => Promise<boolean>;
       notifyClaudeIdlePrompt: (payload: { project?: string }) => Promise<boolean>;
+      notifyCodexTurnComplete: (payload: {
+        threadId: string;
+        cwd: string;
+        message: string;
+      }) => Promise<boolean>;
       onNotificationDecision: (
         callback: (data: { requestId: string; decision: "allow" | "deny" }) => void
       ) => () => void;
