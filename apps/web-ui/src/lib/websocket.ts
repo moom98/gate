@@ -14,6 +14,10 @@ export type WSMessage =
   | {
       type: "claude_idle_prompt";
       payload: ClaudeIdlePrompt;
+    }
+  | {
+      type: "codex_turn_complete";
+      payload: CodexTurnComplete;
     };
 
 export interface ClaudeIdlePrompt {
@@ -21,6 +25,15 @@ export interface ClaudeIdlePrompt {
   raw?: unknown;
   ts: string;
   project?: string;
+}
+
+export interface CodexTurnComplete {
+  type: "agent-turn-complete";
+  threadId: string;
+  cwd: string;
+  raw?: unknown;
+  ts: string;
+  message?: string;
 }
 
 /**
@@ -51,11 +64,13 @@ export function useWebSocket(url: string) {
   const [connectionState, setConnectionState] = useState<ConnectionState>("disconnected");
   const [requests, setRequests] = useState<Map<string, PermissionRequest>>(new Map());
   const [claudeIdlePrompt, setClaudeIdlePrompt] = useState<ClaudeIdlePrompt | null>(null);
+  const [codexEvents, setCodexEvents] = useState<CodexTurnComplete[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const isMountedRef = useRef(true);
   const removeTimeoutsRef = useRef<Set<NodeJS.Timeout>>(new Set());
+  const lastCodexThreadRef = useRef<{ threadId: string; timestamp: number } | null>(null);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -144,6 +159,30 @@ export function useWebSocket(url: string) {
                 body: message.payload.project ? `${message.payload.project} で入力待ちです` : "入力を待機しています",
                 tag: `claude-idle-${message.payload.ts}`,
               });
+            } else if (message.type === "codex_turn_complete") {
+              console.log("[WebSocket] Codex turn complete received:", message.payload.threadId);
+
+              // Deduplication: Ignore same threadId within 5 seconds
+              const now = Date.now();
+              const last = lastCodexThreadRef.current;
+              if (last && last.threadId === message.payload.threadId && (now - last.timestamp) < 5000) {
+                console.log("[WebSocket] Ignoring duplicate Codex event for threadId:", message.payload.threadId);
+                return;
+              }
+
+              lastCodexThreadRef.current = { threadId: message.payload.threadId, timestamp: now };
+
+              // Add to events list (keep last 10)
+              setCodexEvents((prev) => {
+                const next = [message.payload, ...prev];
+                return next.slice(0, 10);
+              });
+
+              // Send notification
+              sendDesktopNotification("Codex Agent Complete", {
+                body: message.payload.message || `Thread ${message.payload.threadId.slice(0, 8)}... in ${message.payload.cwd}`,
+                tag: `codex-turn-${message.payload.threadId}`,
+              });
             }
           } catch (error) {
             console.error("[WebSocket] Failed to parse message:", error);
@@ -211,11 +250,17 @@ export function useWebSocket(url: string) {
     setClaudeIdlePrompt(null);
   }, []);
 
+  const dismissCodexEvent = useCallback((threadId: string) => {
+    setCodexEvents((prev) => prev.filter((e) => e.threadId !== threadId));
+  }, []);
+
   return {
     connectionState,
     requests: Array.from(requests.values()),
     claudeIdlePrompt,
     dismissClaudeIdlePrompt,
+    codexEvents,
+    dismissCodexEvent,
   };
 }
 
