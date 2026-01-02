@@ -5,6 +5,8 @@ on:
     types: [submitted]
   pull_request_review_comment:
     types: [created]
+  # Explicitly prevent push events (GitHub Actions was incorrectly triggering on push)
+  workflow_dispatch:  # Allow manual triggering for testing
 
 permissions:
   contents: write
@@ -13,17 +15,20 @@ permissions:
 
 # Prevent concurrent runs on the same PR
 concurrency:
-  group: copilot-review-${{ github.event.pull_request.number || github.run_id }}
+  group: copilot-review-${{ github.event.pull_request.number || format('{0}-{1}', github.event_name, github.run_id) }}
   cancel-in-progress: false
 
 jobs:
   handle-copilot-review:
     runs-on: ubuntu-latest
 
-    # Only run if triggered by Copilot
+    # Only run if triggered by Copilot on review events (not push)
     if: |
-      (github.event_name == 'pull_request_review' && contains(toLower(github.event.review.user.login), 'copilot')) ||
-      (github.event_name == 'pull_request_review_comment' && contains(toLower(github.event.comment.user.login), 'copilot'))
+      github.event_name != 'push' &&
+      (
+        (github.event_name == 'pull_request_review' && contains(toLower(github.event.review.user.login), 'copilot')) ||
+        (github.event_name == 'pull_request_review_comment' && contains(toLower(github.event.comment.user.login), 'copilot'))
+      )
 
     steps:
       - name: Debug Event Info
