@@ -100,16 +100,15 @@ Codex CLI sends JSON payloads like:
 {
   "threadId": "abc123def456",
   "cwd": "/Users/username/project",
-  "message": "Completed data analysis",
-  "raw": { /* additional Codex data */ }
+  "message": "Completed data analysis"
 }
 ```
 
-The script transforms this into Gate's event format and sends to `/v1/codex-events`.
+The script transforms this into Gate's event format, adds the original payload under `raw`, and sends it to `/v1/codex-events`.
 
 ## Security Notes
 
 - The script always exits with code 0 to avoid blocking Codex CLI
-- Messages are truncated to 500 characters server-side
+- Messages are truncated to 500 characters server-side (client-side fallback matches this limit)
 - Tokens should never be committed to version control
 - Store tokens in `~/.codex/config.toml` (not tracked by git)

@@ -84,7 +84,7 @@ function sendToBroker(payload) {
     const postData = JSON.stringify({
       type: 'agent-turn-complete',
       threadId: payload.threadId || 'unknown',
-      cwd: payload.cwd || process.cwd(),
+      cwd: payload.cwd || 'unknown',
       raw: payload,
       ts: new Date().toISOString(),
       message: message,
@@ -104,10 +104,15 @@ function sendToBroker(payload) {
       let data = '';
       res.on('data', (chunk) => { data += chunk; });
       res.on('end', () => {
-        if (res.statusCode === 200) {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
           resolve();
         } else {
-          reject(new Error(`Broker returned ${res.statusCode}: ${data}`));
+          const maxLength = 200;
+          let safeData = data || '';
+          if (safeData.length > maxLength) {
+            safeData = safeData.substring(0, maxLength) + '...[truncated]';
+          }
+          reject(new Error(`Broker returned ${res.statusCode}: ${safeData}`));
         }
       });
     });
@@ -140,9 +145,9 @@ function extractMessage(payload) {
   if (payload.text && typeof payload.text === 'string') {
     return payload.text;
   }
-  // Fallback to stringified raw payload (truncated)
-  const fallback = JSON.stringify(payload.raw || payload);
-  return fallback.length > 200 ? fallback.substring(0, 197) + '...' : fallback;
+  // Fallback to stringified payload (truncated to server-side limit)
+  const fallback = JSON.stringify(payload);
+  return fallback.length > 500 ? fallback.substring(0, 497) + '...' : fallback;
 }
 
 // Run main
